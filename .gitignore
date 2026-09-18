@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Pipeline outputs: reproducible from the scripts + data on the shares, and
+# large (alignments, per-locus fastas, tree files) — regenerate by re-running
+# the sbatch jobs rather than tracking in git. Final figures/tables are the
+# only outputs worth keeping in the repo history; add specific files back
+# with `git add -f` if you want to snapshot a result.
+results/
+*.log
+*.img

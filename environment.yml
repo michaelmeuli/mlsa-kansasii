@@ -1,0 +1,16 @@
+name: env_mlsa
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.11
+  - biopython
+  - pandas
+  - numpy
+  - matplotlib
+  - scipy
+  - scikit-bio
+  - python-docx
+  - dendropy
+  - pyyaml
