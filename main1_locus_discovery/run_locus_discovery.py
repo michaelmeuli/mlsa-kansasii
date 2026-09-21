@@ -26,6 +26,7 @@ import itertools
 import logging
 import sys
 from pathlib import Path
+from typing import Iterable
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
@@ -86,11 +87,12 @@ def write_coverage_table(per_locus: dict[str, dict[str, str]], species_of: dict[
     log.info("Wrote locus coverage table to %s", out_path)
 
 
-def align_each_locus(per_locus: dict[str, dict[str, str]], usable_loci: list[str]) -> dict[str, dict[str, str]]:
+def align_each_locus(per_locus: dict[str, dict[str, str]], usable_loci: list[str],
+                      results_dir: Path = RESULTS) -> dict[str, dict[str, str]]:
     aligned: dict[str, dict[str, str]] = {}
     for locus in usable_loci:
-        raw_fasta = RESULTS / "alignments" / f"{locus}.raw.fasta"
-        aln_fasta = RESULTS / "alignments" / f"{locus}.aligned.fasta"
+        raw_fasta = results_dir / "alignments" / f"{locus}.raw.fasta"
+        aln_fasta = results_dir / "alignments" / f"{locus}.aligned.fasta"
         write_fasta(per_locus[locus], raw_fasta)
         run_mafft(raw_fasta, aln_fasta)
         aligned[locus] = read_fasta(aln_fasta)
@@ -195,14 +197,23 @@ def search_minimal_combo(aligned: dict[str, dict[str, str]], usable_loci: list[s
     return all_results, None
 
 
-def main() -> None:
-    RESULTS.mkdir(parents=True, exist_ok=True)
+def main(results_dir: Path = RESULTS, exclude_accessions: Iterable[str] = ()) -> None:
+    exclude_accessions = frozenset(exclude_accessions)
+    results_dir.mkdir(parents=True, exist_ok=True)
     genomes = discover_genomes(GTDB_MLSA_ROOT, SPECIES)
     log.info("Discovered %d reference genomes across %d species", len(genomes), len(SPECIES))
+    if exclude_accessions:
+        present = {g.accession for g in genomes}
+        not_found = sorted(set(exclude_accessions) - present)
+        if not_found:
+            log.warning("Requested exclusions not found among discovered genomes: %s", not_found)
+        genomes = [g for g in genomes if g.accession not in exclude_accessions]
+        log.info("Excluded %d genome(s) (%s); %d remain",
+                 len(present & exclude_accessions), ", ".join(sorted(exclude_accessions)), len(genomes))
     species_of = {genome_name(g): g.species for g in genomes}
 
     per_locus = extract_loci_for_all_genomes(genomes)
-    write_coverage_table(per_locus, species_of, RESULTS / "locus_coverage.tsv")
+    write_coverage_table(per_locus, species_of, results_dir / "locus_coverage.tsv")
 
     usable_loci = [locus for locus, seqs in per_locus.items()
                    if {species_of[n] for n in seqs} == set(SPECIES)]
@@ -211,14 +222,14 @@ def main() -> None:
         log.warning("Dropping candidate loci with incomplete species coverage: %s", dropped)
     log.info("Usable candidate loci (all 7 species represented): %s", usable_loci)
 
-    aligned = align_each_locus(per_locus, usable_loci)
+    aligned = align_each_locus(per_locus, usable_loci, results_dir)
     write_single_locus_pair_table(aligned, usable_loci, species_of,
-                                   RESULTS / "single_locus_pair_separation.tsv")
+                                   results_dir / "single_locus_pair_separation.tsv")
 
     all_results, winning_combo = search_minimal_combo(aligned, usable_loci, species_of)
     results_df = pd.DataFrame(all_results).sort_values(["size", "resolves_all"], ascending=[True, False])
-    results_df.to_csv(RESULTS / "combo_results.tsv", sep="\t", index=False)
-    log.info("Wrote %d evaluated combinations to %s", len(results_df), RESULTS / "combo_results.tsv")
+    results_df.to_csv(results_dir / "combo_results.tsv", sep="\t", index=False)
+    log.info("Wrote %d evaluated combinations to %s", len(results_df), results_dir / "combo_results.tsv")
 
     if winning_combo is None:
         log.warning("Finished without a fully resolving locus combination.")
@@ -226,24 +237,26 @@ def main() -> None:
 
     log.info("Winning minimal locus set: %s", "+".join(winning_combo))
     concat = concat_combo(aligned, tuple(winning_combo))
-    winner_dir = RESULTS / "winning_combo"
+    winner_dir = results_dir / "winning_combo"
     winner_fasta = winner_dir / f"{'+'.join(winning_combo)}.aligned.fasta"
     write_fasta(concat, winner_fasta)
 
     treefile = run_iqtree(winner_fasta, winner_dir / "tree")
-    figures_dir = RESULTS / "figures"
+    figures_dir = results_dir / "figures"
     combo_label = "+".join(winning_combo)
     plot_alignment_heatmap(concat, species_of, figures_dir / f"heatmap_{combo_label}",
                             f"Sequence differences across the M. kansasii complex — {combo_label}")
     plot_tree(treefile, species_of, figures_dir / f"tree_{combo_label}",
               f"Maximum-likelihood tree — {combo_label}")
 
-    with open(RESULTS / "SUMMARY.txt", "w") as fh:
+    with open(results_dir / "SUMMARY.txt", "w") as fh:
         fh.write(f"Minimal locus set fully separating all 7 species: {combo_label}\n")
         fh.write(f"Genomes used: {len(concat)} / {len(genomes)}\n")
+        if exclude_accessions:
+            fh.write(f"Excluded genomes: {', '.join(sorted(exclude_accessions))}\n")
         fh.write("See combo_results.tsv for every tested combination and "
                   "locus_coverage.tsv for per-locus extraction coverage.\n")
-    log.info("Done. Summary written to %s", RESULTS / "SUMMARY.txt")
+    log.info("Done. Summary written to %s", results_dir / "SUMMARY.txt")
 
 
 if __name__ == "__main__":
