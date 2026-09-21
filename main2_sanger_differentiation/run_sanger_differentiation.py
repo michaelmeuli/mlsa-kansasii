@@ -27,6 +27,7 @@ import csv
 import logging
 import sys
 from collections import defaultdict
+from typing import Iterable
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -90,16 +91,18 @@ def pick_representative(paths: list[Path]) -> tuple[str, float, Path] | None:
     return candidates[0]
 
 
-def load_reference_sequences(locus: str) -> dict[str, str]:
+def load_reference_sequences(locus: str, main1_results: Path = MAIN1_RESULTS,
+                              exclude_accessions: frozenset[str] = frozenset()) -> dict[str, str]:
     """Reuse main1's already-extracted reference sequences when available;
     otherwise extract them directly so main2 can run standalone."""
-    raw_fasta = MAIN1_RESULTS / "alignments" / f"{locus}.raw.fasta"
+    raw_fasta = main1_results / "alignments" / f"{locus}.raw.fasta"
     if raw_fasta.exists():
         log.info("Reusing main1 reference sequences for %s from %s", locus, raw_fasta)
         return read_fasta(raw_fasta)
 
     log.warning("main1 output for %s not found at %s; extracting references directly", locus, raw_fasta)
-    genomes = discover_genomes(GTDB_MLSA_ROOT, SPECIES)
+    genomes = [g for g in discover_genomes(GTDB_MLSA_ROOT, SPECIES)
+               if g.accession not in exclude_accessions]
     extractor = extract_hsp65 if locus == "hsp65" else extract_16s
     refs = {}
     for g in genomes:
@@ -172,9 +175,9 @@ def recommend_loci(ambiguous_df: pd.DataFrame, pair_sep_path: Path) -> pd.DataFr
 
 
 def run_locus_or_combo(label: str, combined_seqs: dict[str, str], species_of: dict[str, str],
-                        isolate_names: list[str]) -> pd.DataFrame:
-    aln_fasta = RESULTS / "alignments" / f"{label}.raw.fasta"
-    aligned_fasta = RESULTS / "alignments" / f"{label}.aligned.fasta"
+                        isolate_names: list[str], results_dir: Path = RESULTS) -> pd.DataFrame:
+    aln_fasta = results_dir / "alignments" / f"{label}.raw.fasta"
+    aligned_fasta = results_dir / "alignments" / f"{label}.aligned.fasta"
     write_fasta(combined_seqs, aln_fasta)
     run_mafft(aln_fasta, aligned_fasta)
     aligned = read_fasta(aligned_fasta)
@@ -192,21 +195,23 @@ def run_locus_or_combo(label: str, combined_seqs: dict[str, str], species_of: di
         rows.append(result)
     df = pd.DataFrame(rows)
 
-    figures_dir = RESULTS / "figures"
+    figures_dir = results_dir / "figures"
     plot_alignment_heatmap(aligned, species_of, figures_dir / f"heatmap_{label}",
                             f"Isolates vs. reference species — {label}")
     n_tips = len(aligned)
     if n_tips <= 150:
         from mlsa.align import run_iqtree
-        treefile = run_iqtree(aligned_fasta, RESULTS / "alignments" / f"{label}.tree")
+        treefile = run_iqtree(aligned_fasta, results_dir / "alignments" / f"{label}.tree")
         plot_tree(treefile, species_of, figures_dir / f"tree_{label}", f"Tree — {label}")
     else:
         log.info("Skipping tree image for %s (%d sequences, too many to render legibly)", label, n_tips)
     return df
 
 
-def main() -> None:
-    RESULTS.mkdir(parents=True, exist_ok=True)
+def main(results_dir: Path = RESULTS, main1_results: Path = MAIN1_RESULTS,
+         exclude_accessions: Iterable[str] = ()) -> None:
+    exclude_accessions = frozenset(exclude_accessions)
+    results_dir.mkdir(parents=True, exist_ok=True)
     known_tnrs = load_known_tnrs()
     log.info("Known TNRs from screening_map.csv: %d", len(known_tnrs))
 
@@ -214,7 +219,7 @@ def main() -> None:
 
     isolate_seqs: dict[str, dict[str, str]] = {}
     for locus in LOCI:
-        refs = load_reference_sequences(locus)
+        refs = load_reference_sequences(locus, main1_results, exclude_accessions)
         ref_example = next(iter(refs.values())) if refs else None
 
         seqs = dict(refs)
@@ -238,7 +243,7 @@ def main() -> None:
     all_result_dfs = []
     for locus in LOCI:
         isolate_names = [n for n in isolate_seqs[locus] if species_of[n] == "isolate"]
-        df = run_locus_or_combo(locus, isolate_seqs[locus], species_of, isolate_names)
+        df = run_locus_or_combo(locus, isolate_seqs[locus], species_of, isolate_names, results_dir)
         all_result_dfs.append(df)
 
     # hsp65 + 16S concatenated, for isolates (and reference genomes) that have both.
@@ -249,22 +254,22 @@ def main() -> None:
     if both_isolate_tnrs:
         # Re-align each locus alone first (needed to get equal-length columns to concatenate),
         # reusing the alignments just written by run_locus_or_combo.
-        hsp65_aligned = read_fasta(RESULTS / "alignments" / "hsp65.aligned.fasta")
-        s16_aligned = read_fasta(RESULTS / "alignments" / "16S.aligned.fasta")
+        hsp65_aligned = read_fasta(results_dir / "alignments" / "hsp65.aligned.fasta")
+        s16_aligned = read_fasta(results_dir / "alignments" / "16S.aligned.fasta")
         common_refs = set(hsp65_aligned) & set(s16_aligned) - {f"isolate__{t}" for t in both_isolate_tnrs}
         combined = {}
         for name in common_refs | {f"isolate__{t}" for t in both_isolate_tnrs}:
             if name in hsp65_aligned and name in s16_aligned:
                 combined[name] = hsp65_aligned[name] + s16_aligned[name]
         isolate_names = [f"isolate__{t}" for t in both_isolate_tnrs]
-        df_both = run_locus_or_combo("hsp65+16S", combined, species_of, isolate_names)
+        df_both = run_locus_or_combo("hsp65+16S", combined, species_of, isolate_names, results_dir)
         all_result_dfs.append(df_both)
     else:
         log.info("No isolates have both hsp65 and 16S representative reads; skipping combined analysis")
         df_both = pd.DataFrame()
 
     results_df = pd.concat(all_result_dfs, ignore_index=True) if all_result_dfs else pd.DataFrame()
-    results_df.to_csv(RESULTS / "isolate_classification.tsv", sep="\t", index=False)
+    results_df.to_csv(results_dir / "isolate_classification.tsv", sep="\t", index=False)
 
     summary_lines = ["Differentiation summary (unambiguous / total isolates):"]
     for label, df in [("hsp65", all_result_dfs[0]), ("16S", all_result_dfs[1]), ("hsp65+16S", df_both)]:
@@ -275,9 +280,9 @@ def main() -> None:
 
     if len(df_both):
         ambiguous_both = df_both[~df_both["unambiguous"]]
-        recs = recommend_loci(ambiguous_both, MAIN1_RESULTS / "single_locus_pair_separation.tsv")
+        recs = recommend_loci(ambiguous_both, main1_results / "single_locus_pair_separation.tsv")
         if len(recs):
-            recs.to_csv(RESULTS / "recommended_additional_loci.tsv", sep="\t", index=False)
+            recs.to_csv(results_dir / "recommended_additional_loci.tsv", sep="\t", index=False)
             top = recs["recommended_locus"].value_counts()
             summary_lines.append("")
             summary_lines.append("Most commonly recommended additional locus for isolates still "
@@ -287,7 +292,9 @@ def main() -> None:
 
     summary_text = "\n".join(summary_lines)
     log.info("\n%s", summary_text)
-    with open(RESULTS / "SUMMARY.txt", "w") as fh:
+    if exclude_accessions:
+        summary_text += "\n\nReference genomes excluded: " + ", ".join(sorted(exclude_accessions))
+    with open(results_dir / "SUMMARY.txt", "w") as fh:
         fh.write(summary_text + "\n")
 
 
