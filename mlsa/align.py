@@ -16,6 +16,8 @@ import pandas as pd
 from Bio import Align, SeqIO
 from Bio.Seq import Seq
 
+from . import SPECIES
+
 CONTAINER_ROOT = Path(
     "/shares/sander.imm.uzh/software/pipelines/IMMense/IMMense_dependencies/containers"
 )
@@ -28,11 +30,21 @@ def _singularity_exec(img: Path, cmd: list[str], **kwargs) -> subprocess.Complet
     return subprocess.run(full_cmd, check=True, **kwargs)
 
 
+def species_sort_key(name: str) -> tuple[int, str]:
+    """Sort key for "<species>__<accession>" record names: SPECIES order first,
+    then name. Anything else (e.g. "isolate__<tnr>") sorts after the references."""
+    prefix = name.split("__", 1)[0]
+    rank = SPECIES.index(prefix) if prefix in SPECIES else len(SPECIES)
+    return rank, name
+
+
 def write_fasta(sequences: dict[str, str], path: Path) -> None:
+    """Write records in species_sort_key order so every FASTA (and the MAFFT
+    alignments, which preserve input order) comes out species-grouped."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as fh:
-        for name, seq in sequences.items():
-            fh.write(f">{name}\n{seq}\n")
+        for name in sorted(sequences, key=species_sort_key):
+            fh.write(f">{name}\n{sequences[name]}\n")
 
 
 def read_fasta(path: Path) -> dict[str, str]:

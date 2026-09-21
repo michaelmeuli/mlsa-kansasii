@@ -40,12 +40,13 @@ from mlsa.align import (  # noqa: E402
     resolves_all_species,
     run_iqtree,
     run_mafft,
+    species_sort_key,
     write_fasta,
 )
 from mlsa.loci import CANDIDATE_LOCI, discover_genomes, extract_all_loci  # noqa: E402
 from mlsa.plotting import plot_alignment_heatmap, plot_tree  # noqa: E402
 
-RESULTS = REPO_ROOT / "results" / "main1_locus_discovery"
+RESULTS = Path("/shares/sander.imm.uzh/MM/kansasii/output") / "mlsa" / "main1_locus_discovery"
 MAX_EXHAUSTIVE_SIZE = 4
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -100,7 +101,7 @@ def align_each_locus(per_locus: dict[str, dict[str, str]], usable_loci: list[str
 
 def concat_combo(aligned: dict[str, dict[str, str]], combo: tuple[str, ...]) -> dict[str, str]:
     common_names = set.intersection(*(set(aligned[locus]) for locus in combo))
-    return {name: "".join(aligned[locus][name] for locus in combo) for name in common_names}
+    return {name: "".join(aligned[locus][name] for locus in combo) for name in sorted(common_names, key=species_sort_key)}
 
 
 def evaluate_combo(aligned: dict[str, dict[str, str]], combo: tuple[str, ...],

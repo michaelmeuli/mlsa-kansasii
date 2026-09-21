@@ -46,8 +46,8 @@ from mlsa.loci import discover_genomes, extract_16s, extract_hsp65  # noqa: E402
 from mlsa.plotting import plot_alignment_heatmap, plot_tree  # noqa: E402
 from mlsa.sanger_io import classify_locus, extract_tnr, load_trimmed_ab1  # noqa: E402
 
-RESULTS = REPO_ROOT / "results" / "main2_sanger_differentiation"
-MAIN1_RESULTS = REPO_ROOT / "results" / "main1_locus_discovery"
+RESULTS = Path("/shares/sander.imm.uzh/MM/kansasii/output") / "mlsa" / "main2_sanger_differentiation"
+MAIN1_RESULTS = Path("/shares/sander.imm.uzh/MM/kansasii/output") / "mlsa" / "main1_locus_discovery"
 LOCI = ["hsp65", "16S"]
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
