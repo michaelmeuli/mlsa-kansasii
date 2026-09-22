@@ -4,14 +4,14 @@
 #
 # Create species-grouped symlinks to the already-downloaded genomes of the
 # M. kansasii species complex, based on the accessions list produced by
-# kansasii-lit/scripts/download_filter_gtdb.sh.
+# scripts/download_filter_gtdb.sh.
 
 set -euo pipefail
 
 ACCESSIONS_OUT=/shares/sander.imm.uzh/MM/kansasii/data/lit/gtdb/gtdb232/kansasii-complex-mlsa-accessions.txt
 
 if [ ! -f "$ACCESSIONS_OUT" ]; then
-  echo "ERROR: $ACCESSIONS_OUT not found; run kansasii-lit/scripts/download_filter_gtdb.sh first" >&2
+  echo "ERROR: $ACCESSIONS_OUT not found; run scripts/download_filter_gtdb.sh first" >&2
   exit 1
 fi
 
