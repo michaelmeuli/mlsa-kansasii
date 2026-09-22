@@ -8,7 +8,7 @@
 #
 # Usage:
 #   conda activate env_mlsa
-#   cd /shares/sander.imm.uzh/MM/kansasii/mlsa-kansasii
+#   cd /shares/sander.imm.uzh/MM/kansasii/repos/mlsa-kansasii
 #   bash Singularity/pull_singularity_img.sh /shares/sander.imm.uzh/software/pipelines/IMMense/IMMense_dependencies/containers
 
 set -euo pipefail

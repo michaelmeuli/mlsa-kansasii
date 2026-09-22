@@ -9,7 +9,7 @@ set -euo pipefail
 
 module load apptainer
 
-REPO_ROOT="/shares/sander.imm.uzh/MM/kansasii/mlsa-kansasii"
+REPO_ROOT="/shares/sander.imm.uzh/MM/kansasii/repos/mlsa-kansasii"
 source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate env_mlsa
 
