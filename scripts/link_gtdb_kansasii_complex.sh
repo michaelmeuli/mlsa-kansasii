@@ -1,47 +1,19 @@
 #!/usr/bin/env bash
 
 # srun --pty -n 1 -c 6 --time=01:00:00 --mem=16G bash -l
+#
+# Create species-grouped symlinks to the already-downloaded genomes of the
+# M. kansasii species complex, based on the accessions list produced by
+# kansasii-lit/scripts/download_filter_gtdb.sh.
 
 set -euo pipefail
-mkdir -p /shares/sander.imm.uzh/MM/kansasii/lit/gtdb/gtdb232
-cd /shares/sander.imm.uzh/MM/kansasii/lit/gtdb/gtdb232
 
-if [ ! -f bac120_metadata_r232.tsv ]; then
-  wget https://data.gtdb.aau.ecogenomic.org/releases/release232/232.0/bac120_metadata_r232.tsv.gz
-  gunzip bac120_metadata_r232.tsv.gz
-fi
+ACCESSIONS_OUT=/shares/sander.imm.uzh/MM/kansasii/output/lit/gtdb/gtdb232/kansasii-complex-mlsa-accessions.txt
 
-# --- filter GTDB metadata down to the M. kansasii species complex ------------
-
-SPECIES_PATTERN='s__Mycobacterium (kansasii|persicum|pseudokansasii|innocens|attenuatum|ostraviense|gastri)'
-METADATA=bac120_metadata_r232.tsv
-ACCESSIONS_OUT=kansasii-complex-mlsa-accessions.txt
-
-# Column indices are looked up from the header at runtime so this stays
-# robust to GTDB reordering columns between releases.
-header=$(head -1 "$METADATA")
-acc_col=$(echo "$header" | tr '\t' '\n' | grep -nx 'accession' | cut -d: -f1)
-tax_col=$(echo "$header" | tr '\t' '\n' | grep -nx 'gtdb_taxonomy' | cut -d: -f1)
-
-if [ -z "$acc_col" ] || [ -z "$tax_col" ]; then
-  echo "ERROR: could not find 'accession' or 'gtdb_taxonomy' columns in $METADATA" >&2
+if [ ! -f "$ACCESSIONS_OUT" ]; then
+  echo "ERROR: $ACCESSIONS_OUT not found; run kansasii-lit/scripts/download_filter_gtdb.sh first" >&2
   exit 1
 fi
-
-awk -F'\t' -v acc_col="$acc_col" -v tax_col="$tax_col" -v pattern="$SPECIES_PATTERN" '
-  NR > 1 && $tax_col ~ pattern {
-    acc = $acc_col
-    sub(/^(RS_|GB_)/, "", acc)
-    tax = $tax_col
-    sub(/.*s__Mycobacterium /, "", tax)
-    print acc "\t" tax
-  }
-' "$METADATA" | sort -u > "$ACCESSIONS_OUT"
-
-n_acc=$(wc -l < "$ACCESSIONS_OUT")
-echo "Wrote $n_acc kansasii-complex accessions to $PWD/$ACCESSIONS_OUT"
-echo "Per-species counts:"
-cut -f2 "$ACCESSIONS_OUT" | sort | uniq -c
 
 # --- create species-grouped symlinks to the already-downloaded genomes -------
 
