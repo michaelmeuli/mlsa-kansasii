@@ -8,7 +8,7 @@ the lab's existing hsp65 + 16S Sanger data already get?
 ## Layout
 
 - `scripts/link_sanger_kansasii.sh` — symlinks the `.ab1` Sanger traces of
-  the TNR isolates in `data/imm/screening_map.csv` into
+  the TNR isolates in `data/imm/screening_map_link.csv` into
   `data/sanger/seq_kansasii/`.
 - `scripts/link_gtdb_kansasii_complex.sh` — downloads/filters GTDB r232
   metadata for the 7 complex species and symlinks their genomes

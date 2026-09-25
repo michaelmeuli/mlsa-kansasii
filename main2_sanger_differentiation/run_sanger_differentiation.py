@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 """Main program 2: using the Sanger hsp65 + 16S reads the lab already has for
-the TNR isolates in data/imm/screening_map.csv (symlinked into
+the TNR isolates in data/imm/screening_map_link.csv (symlinked into
 data/sanger/seq_kansasii by scripts/link_sanger_kansasii.sh), assess how far
 species-level differentiation actually gets today, and which additional
 locus/loci (from main1_locus_discovery's candidate set) would need to be
 sequenced to resolve the isolates that remain ambiguous.
 
-For each isolate + locus, all matching .ab1 reads are quality-trimmed and the
+Isolates are keyed by PROBENNUMMER: reads under any of an isolate's TNRs
+(TNR, TNR_NGS, TNR3..TNR6) are pooled. For each isolate + locus, all
+matching .ab1 reads are quality-trimmed and the
 best (longest, then highest quality) read is taken as that isolate's
 representative sequence (no fwd/rev consensus assembly in this first pass).
 Representative sequences are oriented against a reference sequence, aligned
@@ -35,7 +37,13 @@ sys.path.insert(0, str(REPO_ROOT))
 
 import pandas as pd  # noqa: E402
 
-from mlsa import SANGER_LINK_DIR, SCREENING_MAP, SPECIES, GTDB_MLSA_ROOT  # noqa: E402
+from mlsa import (  # noqa: E402
+    GTDB_MLSA_ROOT,
+    SANGER_LINK_DIR,
+    SCREENING_MAP,
+    SCREENING_MAP_TNR_COLUMNS,
+    SPECIES,
+)
 from mlsa.align import (  # noqa: E402
     orient_to_reference,
     p_distance_matrix,
@@ -55,28 +63,39 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 log = logging.getLogger("sanger_differentiation")
 
 
-def load_known_tnrs() -> set[str]:
+def load_tnr_to_probennummer() -> dict[str, str]:
+    """Map every TNR in any of SCREENING_MAP_TNR_COLUMNS to its row's
+    PROBENNUMMER. Reference strains have no TNR and are skipped."""
+    tnr_to_pnr: dict[str, str] = {}
     with open(SCREENING_MAP) as fh:
-        reader = csv.DictReader(fh)
-        return {row["TNR"] for row in reader if row["TNR"]}
+        for row in csv.DictReader(fh):
+            for col in SCREENING_MAP_TNR_COLUMNS:
+                tnr = row[col]
+                if not tnr:
+                    continue
+                if tnr_to_pnr.get(tnr, row["PROBENNUMMER"]) != row["PROBENNUMMER"]:
+                    raise ValueError(f"TNR {tnr} listed for both {tnr_to_pnr[tnr]} "
+                                     f"and {row['PROBENNUMMER']} in {SCREENING_MAP}")
+                tnr_to_pnr[tnr] = row["PROBENNUMMER"]
+    return tnr_to_pnr
 
 
-def collect_isolate_reads(known_tnrs: set[str]) -> dict[str, dict[str, list[Path]]]:
-    """locus -> {tnr: [ab1 paths]}"""
-    by_locus_tnr: dict[str, dict[str, list[Path]]] = {locus: defaultdict(list) for locus in LOCI}
+def collect_isolate_reads(tnr_to_pnr: dict[str, str]) -> dict[str, dict[str, list[Path]]]:
+    """locus -> {probennummer: [ab1 paths]}"""
+    by_locus_pnr: dict[str, dict[str, list[Path]]] = {locus: defaultdict(list) for locus in LOCI}
     for path in sorted(SANGER_LINK_DIR.glob("*.ab1")):
         locus = classify_locus(path.name)
         if locus is None:
             continue
-        tnr = extract_tnr(path.name, known_tnrs)
+        tnr = extract_tnr(path.name, tnr_to_pnr)
         if tnr is None:
             continue
-        by_locus_tnr[locus][tnr].append(path)
-    return by_locus_tnr
+        by_locus_pnr[locus][tnr_to_pnr[tnr]].append(path)
+    return by_locus_pnr
 
 
 def pick_representative(paths: list[Path]) -> tuple[str, float, Path] | None:
-    """Quality-trim every candidate read for a (tnr, locus) and keep the
+    """Quality-trim every candidate read for a (probennummer, locus) and keep the
     longest (ties broken by mean quality) as the representative sequence."""
     candidates = []
     for path in paths:
@@ -170,7 +189,7 @@ def recommend_loci(ambiguous_df: pd.DataFrame, pair_sep_path: Path) -> pd.DataFr
             & pair_sep["separated"]
         ].sort_values("gap_margin", ascending=False)
         recommended = candidates.iloc[0]["locus"] if len(candidates) else "none of the candidate loci"
-        rows.append({"tnr": row["tnr"], "species_a": sp_a, "species_b": sp_b, "recommended_locus": recommended})
+        rows.append({"probennummer": row["probennummer"], "species_a": sp_a, "species_b": sp_b, "recommended_locus": recommended})
     return pd.DataFrame(rows)
 
 
@@ -190,7 +209,7 @@ def run_locus_or_combo(label: str, combined_seqs: dict[str, str], species_of: di
         if name not in aligned:
             continue
         result = classify_isolate(name, dist, species_of, intra_max)
-        result["tnr"] = name.split("__", 1)[1]
+        result["probennummer"] = name.split("__", 1)[1]
         result["locus"] = label
         rows.append(result)
     df = pd.DataFrame(rows)
@@ -212,10 +231,11 @@ def main(results_dir: Path = RESULTS, main1_results: Path = MAIN1_RESULTS,
          exclude_accessions: Iterable[str] = ()) -> None:
     exclude_accessions = frozenset(exclude_accessions)
     results_dir.mkdir(parents=True, exist_ok=True)
-    known_tnrs = load_known_tnrs()
-    log.info("Known TNRs from screening_map.csv: %d", len(known_tnrs))
+    tnr_to_pnr = load_tnr_to_probennummer()
+    log.info("Known TNRs from %s: %d (for %d isolates)",
+             SCREENING_MAP.name, len(tnr_to_pnr), len(set(tnr_to_pnr.values())))
 
-    by_locus_tnr = collect_isolate_reads(known_tnrs)
+    by_locus_pnr = collect_isolate_reads(tnr_to_pnr)
 
     isolate_seqs: dict[str, dict[str, str]] = {}
     for locus in LOCI:
@@ -224,7 +244,7 @@ def main(results_dir: Path = RESULTS, main1_results: Path = MAIN1_RESULTS,
 
         seqs = dict(refs)
         n_ok = n_fail = 0
-        for tnr, paths in by_locus_tnr[locus].items():
+        for pnr, paths in by_locus_pnr[locus].items():
             rep = pick_representative(paths)
             if rep is None:
                 n_fail += 1
@@ -232,10 +252,10 @@ def main(results_dir: Path = RESULTS, main1_results: Path = MAIN1_RESULTS,
             seq, mean_q, source = rep
             if ref_example:
                 seq = orient_to_reference(seq, ref_example)
-            seqs[f"isolate__{tnr}"] = seq
+            seqs[f"isolate__{pnr}"] = seq
             n_ok += 1
-        log.info("%s: %d isolates with a usable representative read, %d with none (of %d TNRs seen)",
-                  locus, n_ok, n_fail, len(by_locus_tnr[locus]))
+        log.info("%s: %d isolates with a usable representative read, %d with none (of %d isolates seen)",
+                  locus, n_ok, n_fail, len(by_locus_pnr[locus]))
         isolate_seqs[locus] = seqs
 
     species_of = {name: species_of_name(name) for seqs in isolate_seqs.values() for name in seqs}
@@ -247,21 +267,21 @@ def main(results_dir: Path = RESULTS, main1_results: Path = MAIN1_RESULTS,
         all_result_dfs.append(df)
 
     # hsp65 + 16S concatenated, for isolates (and reference genomes) that have both.
-    both_isolate_tnrs = (
+    both_isolate_pnrs = (
         {n.split("__", 1)[1] for n in isolate_seqs["hsp65"] if species_of[n] == "isolate"}
         & {n.split("__", 1)[1] for n in isolate_seqs["16S"] if species_of[n] == "isolate"}
     )
-    if both_isolate_tnrs:
+    if both_isolate_pnrs:
         # Re-align each locus alone first (needed to get equal-length columns to concatenate),
         # reusing the alignments just written by run_locus_or_combo.
         hsp65_aligned = read_fasta(results_dir / "alignments" / "hsp65.aligned.fasta")
         s16_aligned = read_fasta(results_dir / "alignments" / "16S.aligned.fasta")
-        common_refs = set(hsp65_aligned) & set(s16_aligned) - {f"isolate__{t}" for t in both_isolate_tnrs}
+        common_refs = set(hsp65_aligned) & set(s16_aligned) - {f"isolate__{t}" for t in both_isolate_pnrs}
         combined = {}
-        for name in common_refs | {f"isolate__{t}" for t in both_isolate_tnrs}:
+        for name in common_refs | {f"isolate__{t}" for t in both_isolate_pnrs}:
             if name in hsp65_aligned and name in s16_aligned:
                 combined[name] = hsp65_aligned[name] + s16_aligned[name]
-        isolate_names = [f"isolate__{t}" for t in both_isolate_tnrs]
+        isolate_names = [f"isolate__{t}" for t in both_isolate_pnrs]
         df_both = run_locus_or_combo("hsp65+16S", combined, species_of, isolate_names, results_dir)
         all_result_dfs.append(df_both)
     else:

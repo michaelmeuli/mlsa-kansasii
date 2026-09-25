@@ -32,7 +32,7 @@ def _singularity_exec(img: Path, cmd: list[str], **kwargs) -> subprocess.Complet
 
 def species_sort_key(name: str) -> tuple[int, str]:
     """Sort key for "<species>__<accession>" record names: SPECIES order first,
-    then name. Anything else (e.g. "isolate__<tnr>") sorts after the references."""
+    then name. Anything else (e.g. "isolate__<probennummer>") sorts after the references."""
     prefix = name.split("__", 1)[0]
     rank = SPECIES.index(prefix) if prefix in SPECIES else len(SPECIES)
     return rank, name

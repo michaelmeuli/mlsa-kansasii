@@ -4,6 +4,7 @@ lab's routine Sanger sequencing filenames (hsp65 + 16S NTM workup).
 from __future__ import annotations
 
 import re
+from collections.abc import Container
 from pathlib import Path
 
 from Bio import SeqIO
@@ -40,9 +41,9 @@ def classify_locus(filename: str) -> str | None:
     return None
 
 
-def extract_tnr(filename: str, known_tnrs: set[str]) -> str | None:
-    """Return the TNR embedded in filename, validated against the known TNR
-    set from screening_map.csv (guards against any other coincidental
+def extract_tnr(filename: str, known_tnrs: Container[str]) -> str | None:
+    """Return the TNR embedded in filename, validated against the known TNRs
+    from screening_map_link.csv (guards against any other coincidental
     10-digit run, e.g. part of a timestamp)."""
     for m in TNR_RE.finditer(filename):
         if m.group(1) in known_tnrs:

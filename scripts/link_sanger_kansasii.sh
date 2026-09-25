@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
 # Create symbolic links to the .ab1 Sanger trace files of all TNR isolates
-# listed in data/imm/screening_map.csv, found anywhere under
+# listed in data/imm/screening_map_link.csv (any of its TNR, TNR_NGS,
+# TNR3..TNR6 columns), found anywhere under
 # data/sanger/seq_mol_routine/***, into a flat directory
 # data/sanger/seq_kansasii/.
 #
@@ -16,7 +17,7 @@ set -euo pipefail
 ROOT=/shares/sander.imm.uzh/MM/kansasii
 SANGER_ROOT="$ROOT/data/sanger/seq_mol_routine"
 LINK_DIR="$ROOT/data/sanger/seq_kansasii"
-SCREENING_MAP="$ROOT/data/imm/screening_map.csv"
+SCREENING_MAP="$ROOT/data/imm/screening_map_link.csv"
 
 mkdir -p "$LINK_DIR"
 
@@ -25,10 +26,18 @@ ALL_AB1=$(mktemp)
 MATCHED=$(mktemp)
 trap 'rm -f "$TNR_LIST" "$ALL_AB1" "$MATCHED"' EXIT
 
-# TNR is column 3; skip header and rows with an empty TNR (reference strains).
-awk -F',' 'NR>1 && $3!="" {print $3}' "$SCREENING_MAP" | sort -u > "$TNR_LIST"
+# Locate the TNR columns by header name (their position is not stable across
+# versions of the map); skip empty cells (reference strains have no TNR).
+awk -F',' '
+    NR==1 { for (i=1; i<=NF; i++) if ($i ~ /^TNR(_NGS|[0-9]+)?$/) cols[i]; next }
+    { for (i in cols) if ($i != "") print $i }
+' "$SCREENING_MAP" | sort -u > "$TNR_LIST"
 n_tnr=$(wc -l < "$TNR_LIST")
-echo "Unique TNRs in screening_map.csv: $n_tnr"
+echo "Unique TNRs in $(basename "$SCREENING_MAP"): $n_tnr"
+if grep -qvE '^[0-9]{10}$' "$TNR_LIST"; then
+    echo "Non-10-digit TNR in $SCREENING_MAP; refusing to substring-match it" >&2
+    exit 1
+fi
 
 find "$SANGER_ROOT" -type f -iname '*.ab1' > "$ALL_AB1"
 n_ab1=$(wc -l < "$ALL_AB1")
