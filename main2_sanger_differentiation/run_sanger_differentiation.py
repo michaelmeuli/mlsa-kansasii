@@ -16,8 +16,9 @@ together with the 7-species reference sequences from main1 (reused from
 output/mlsa/main1_locus_discovery/alignments/*.raw.fasta when available, else
 re-extracted directly), and each isolate is classified as unambiguously
 nested in one species' cluster, or ambiguous, using the same DNA-barcoding
-gap logic as main1 (isolate-to-species distance vs. that species' own
-observed diversity among references).
+gap logic as main1: the gap between the isolate's nearest and second-nearest
+species must exceed the larger within-species diversity of the two among
+the references.
 
 Run via submit_sanger_differentiation.sbatch (requires env_mlsa active and
 the mafft Singularity container pulled). Best run after main1, but falls
@@ -151,17 +152,27 @@ def max_intra_species(dist: pd.DataFrame, species_of: dict[str, str]) -> dict[st
 
 
 def classify_isolate(isolate_name: str, dist: pd.DataFrame, species_of: dict[str, str],
-                      intra_max: dict[str, float]) -> dict:
+                      intra_max: dict[str, float]) -> dict | None:
+    """Nearest and second-nearest species by the isolate's distance to each
+    species' closest reference. The tolerance is the larger within-species
+    diversity of the two species, as in main1's barcoding-gap check
+    (mlsa.align.barcoding_gap_check). References whose distance is NaN (no
+    overlapping, gap-free columns with the isolate's read) are skipped."""
     per_species_min: dict[str, float] = {}
     for ref_name, sp in species_of.items():
         if sp not in SPECIES or ref_name not in dist.columns:
             continue
         d = dist.loc[isolate_name, ref_name]
+        if pd.isna(d):
+            continue
         per_species_min[sp] = min(per_species_min.get(sp, float("inf")), d)
+    if not per_species_min:
+        log.warning("%s shares no aligned columns with any reference; not classified", isolate_name)
+        return None
     ranked = sorted(per_species_min.items(), key=lambda kv: kv[1])
     best_sp, best_d = ranked[0]
     second_sp, second_d = ranked[1] if len(ranked) > 1 else (None, float("inf"))
-    tolerance = intra_max.get(best_sp, 0.0)
+    tolerance = max(intra_max.get(best_sp, 0.0), intra_max.get(second_sp, 0.0))
     margin = second_d - best_d
     return {
         "nearest_species": best_sp,
@@ -183,6 +194,8 @@ def recommend_loci(ambiguous_df: pd.DataFrame, pair_sep_path: Path) -> pd.DataFr
 
     rows = []
     for _, row in ambiguous_df.iterrows():
+        if pd.isna(row["second_species"]):
+            continue
         sp_a, sp_b = sorted([row["nearest_species"], row["second_species"]])
         candidates = pair_sep[
             ((pair_sep["species_a"] == sp_a) & (pair_sep["species_b"] == sp_b))
@@ -209,6 +222,8 @@ def run_locus_or_combo(label: str, combined_seqs: dict[str, str], species_of: di
         if name not in aligned:
             continue
         result = classify_isolate(name, dist, species_of, intra_max)
+        if result is None:
+            continue
         result["probennummer"] = name.split("__", 1)[1]
         result["locus"] = label
         rows.append(result)

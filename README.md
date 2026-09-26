@@ -51,6 +51,13 @@ Outputs are written to the shares, not into the repo:
 `/shares/sander.imm.uzh/MM/kansasii/output/mlsa/main2_sanger_differentiation/`
 (tables + `figures/`), and `output/mlsa/genome_identity_check/`.
 
+To download all results to a Windows machine (PowerShell):
+
+```powershell
+New-Item -ItemType Directory -Path "$env:USERPROFILE\kansasii_C\downloads\" -Force
+scp -r mimeul@cluster.s3it.uzh.ch:/shares/sander.imm.uzh/MM/kansasii/output/* "$env:USERPROFILE\kansasii_C\downloads\"
+```
+
 ## How outputs are used downstream
 
 | Step | Produces | Used by |
@@ -74,7 +81,10 @@ The table has one row per isolate (`probennummer`) per `locus` (`hsp65`,
 `16S`, `hsp65+16S`).
 
 1. **One sequence per isolate and locus.** Reads under all of an isolate's
-   TNR columns are pooled. Every `.ab1` read is quality-trimmed (Mott, reads
+   TNR columns are pooled. The locus comes from the filename
+   (`mlsa.sanger_io.classify_locus`): hsp65 by gene name or TB-11/TB-12(w)
+   primer in their historical spellings, 16S by the MBAK-14, Mbak259r or
+   Mbak264r primer. Every `.ab1` read is quality-trimmed (Mott, reads
    shorter than 100 bp are dropped) and the longest one is kept, with ties
    going to higher mean quality. Forward and reverse reads are not merged
    into a consensus. The read is flipped if needed to match the reference
@@ -91,10 +101,11 @@ The table has one row per isolate (`probennummer`) per `locus` (`hsp65`,
 4. **Classification.** For each species, take the isolate's distance to that
    species' closest reference. The closest and second-closest species give
    `nearest_species`/`nearest_dist` and `second_species`/`second_dist`.
-   `margin = second_dist - nearest_dist`, `tolerance` is the nearest
-   species' tolerance, and **`unambiguous = margin > tolerance`**. So the
-   second-closest species has to be further away than the nearest species'
-   own references are from each other.
+   `margin = second_dist - nearest_dist`, `tolerance` is the larger of the
+   two species' tolerances (the same rule as main1's barcoding-gap check),
+   and **`unambiguous = margin > tolerance`**. So the second-closest species
+   has to be further away than the references of either species are from
+   each other.
 5. **hsp65+16S.** Only isolates with both reads get this row. The two
    single-locus alignments are joined end to end, keeping only references
    that have both loci, and steps 3–4 are repeated.
@@ -105,14 +116,20 @@ separates their nearest and second-closest species.
 
 Things to keep in mind when reading the table:
 
-- The tolerance comes from the reference genomes of the nearest species.
-  Diverse species such as kansasii (hsp65 tolerance 0.025) make isolates
-  ambiguous even when they sit right next to a reference.
+- The tolerance comes from the reference genomes of the two closest
+  species. A diverse species such as kansasii (hsp65 tolerance 0.025) makes
+  every isolate whose nearest or second-closest species is kansasii
+  ambiguous, even when it sits right next to a reference.
+- The tolerance comes from full-length reference sequences, while an
+  isolate's distances only cover its read. For short reads (16S reads cover
+  about a third of the gene) the tolerance can be too strict.
 - Gaps are skipped, so a short read that overlaps little of the alignment is
   judged on only a few positions.
 - Reference 16S/ITS: some GTDB assemblies contain contaminant contigs with
   their own 16S. `mlsa.loci.extract_16s` skips partial copies and keeps the
   copy closest to the type-strain 16S (see LIT.md, "Extraction artifact").
+  Partial genes are also skipped for the gene-symbol loci (rpoB, gyrA, gyrB,
+  recA, secA1, tuf).
 
 The TNR isolates will also be Illumina-sequenced and speciated with the
 `kansasii` branch of

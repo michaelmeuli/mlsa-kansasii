@@ -12,22 +12,32 @@ from Bio import SeqIO
 TNR_RE = re.compile(r"(\d{10})")
 
 
+# hsp65 reads: the gene name in its many historical spellings ("hsp65",
+# "hsp_11", "hsp 65", "65 hsp", typos "hps65"/"hso65", "65kDa") or only the
+# TB-11/TB-12(w) primer name ("Tb-11", "TB12w", a standalone "12w"). Broader
+# than the immensekansasii Rust classifier's `is_hsp65`, which only knows
+# "hsp65"/"65kda" and misses these reads.
+_HSP65_RE = re.compile(
+    r"hsp|hps65|hso65|65\s*kda|tb[-_ ]?1[12]w?|(?<![a-z0-9])12w(?![a-z0-9])",
+    re.IGNORECASE,
+)
+# 16S reads: the lab's 16S primers MBAK-14 (as in the Rust classifier's
+# `is_16s`), Mbak259r and Mbak264r. The latter two also appear as just
+# "bak259r", "259r", "r259", "264r" or "264" between separators.
+_16S_RE = re.compile(
+    r"mbak[-_ ]?14(?!\d)|m?bak[-_ ]?(?:259|264)(?!\d)"
+    r"|(?<![a-z0-9])r?(?:259|264)r?(?![a-z0-9])",
+    re.IGNORECASE,
+)
+
+
 def is_hsp65(filename: str) -> bool:
-    """Ported from the immensekansasii Rust classifier's `is_hsp65`
-    (`!is_fasta() && (contains("hsp65") || contains("65kda"))`). Callers only
-    ever pass already-.ab1-filtered filenames (see
-    scripts/link_sanger_kansasii.sh), so the `!is_fasta()` guard is always
-    true here and is omitted."""
-    lower = filename.lower()
-    return "hsp65" in lower or "65kda" in lower
+    """Callers only pass .ab1 filenames (see scripts/link_sanger_kansasii.sh)."""
+    return bool(_HSP65_RE.search(filename))
 
 
 def is_16s(filename: str) -> bool:
-    """Ported from the Rust classifier's `is_16s`
-    (`contains("mbak14") || contains("mbak-14")`), restricted to .ab1
-    filenames as for is_hsp65 above."""
-    lower = filename.lower()
-    return "mbak14" in lower or "mbak-14" in lower
+    return bool(_16S_RE.search(filename))
 
 
 def classify_locus(filename: str) -> str | None:

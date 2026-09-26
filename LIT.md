@@ -87,14 +87,17 @@ not affect the ANI conclusion.
 
 - gyrA is unaffected and still separates all 7 species with or without the
   three genomes.
-- The excluded run (hsp65 alone: 117/119 isolates unambiguous, versus 22/119
+- The excluded run (hsp65 alone: 123/127 isolates unambiguous, versus 9/127
   with all genomes) is an over-estimate. The three genomes are the only ones
   that inflate kansasii's within-species tolerance at hsp65, so dropping them
   assumes atypical-hsp65 kansasii do not occur.
 - Treat the full-reference runs as primary and the `*_excluded` runs as a
   sensitivity analysis.
-- hsp65 called 11 of the 119 isolates persicum. Some could be atypical
-  kansasii like these; only gyrA would tell them apart. Not checked.
+- hsp65 calls 11 of the 127 isolates persicum, each with kansasii as the
+  second-closest species. With all genomes, all 11 are ambiguous: main2's
+  tolerance is the larger of the two species' diversity, which here is
+  kansasii's 0.025 from these three genomes. Some of the 11 could be
+  atypical kansasii like these; only gyrA would tell them apart. Not checked.
 
 ## Extraction artifact: contaminant 16S copies (fixed)
 
@@ -176,27 +179,37 @@ sequences (H1 to H7):
 
 ### Isolates (main2, Sanger reads)
 
-The Sanger reads cover only part of the gene. 57 of 58 isolates are exactly
+The Sanger reads cover only part of the gene. 59 of 65 isolates are exactly
 the same distance from two species: kansasii/ostraviense (41),
-kansasii/persicum (9) or pseudokansasii/attenuatum (7). The one unambiguous
-isolate is an innocens.
+kansasii/persicum (10) or pseudokansasii/attenuatum (8). Three are
+unambiguous: Mkan329-124 (kansasii), Mkan329-171 (pseudokansasii) and
+Mkan329-056 (attenuatum). These calls are fragile. kansasii and ostraviense
+have identical reference 16S over the shared region, so Mkan329-124's
+separation must come from positions at the ends where not all reference
+sequences have data (gaps are skipped). Mkan329-056 is 2.7% from its
+nearest reference, which points to a noisy read.
 
-### Is hsp65+16S better than hsp65 alone? No.
+### Is hsp65+16S better than hsp65 alone? No, apart from one isolate.
 
 Species pairs separated in the reference genomes (barcoding gap), and
-unambiguous isolates among the 36 that have both reads:
+unambiguous isolates among the 42 that have both reads:
 
 | | hsp65 | 16S | hsp65+16S |
 |---|---|---|---|
 | Reference pairs separated, all genomes | 17/21 | 12/21 | **15/21** |
 | Reference pairs separated, `_excluded` | 21/21 | 12/21 | **20/21** |
-| Unambiguous isolates, all genomes | 3/36 | 1/36 | **3/36** (the same 3) |
-| Unambiguous isolates, `_excluded` | 36/36 | 1/36 | **28/36** |
+| Unambiguous isolates, all genomes | 3/42 | 0/42 | **4/42** |
+| Unambiguous isolates, `_excluded` | 42/42 | 0/42 | **34/42** |
 
-- The combined locus calls the same nearest species as hsp65 for all 36
+- The combined locus calls the same nearest species as hsp65 for all 42
   isolates.
-- With all genomes, adding 16S resolves nothing new. Relative to hsp65, it
-  loses the attenuatum-kansasii and innocens-kansasii reference pairs.
+- With all genomes, adding 16S resolves one more isolate: Mkan329-092
+  (persicum, second kansasii). With hsp65 alone its margin (0.0087) is below
+  kansasii's 0.025 tolerance. In the combined locus the 16S positions shrink
+  kansasii's tolerance more than the margin. That is a side effect of the
+  dilution described below, not extra information from 16S: its 16S alone
+  is ambiguous. Relative to hsp65, adding 16S loses the attenuatum-kansasii
+  and innocens-kansasii reference pairs.
 - In the `_excluded` run, it loses 8 isolates that hsp65 alone resolves
   (Mkan329-006, -020, -028, -039, -044, -049, -050, -146), and the
   gastri-kansasii reference pair.

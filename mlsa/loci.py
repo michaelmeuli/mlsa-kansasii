@@ -91,13 +91,14 @@ def discover_genomes(mlsa_root: Path, species_list: Iterable[str]) -> list[Genom
 
 def extract_gene_by_symbol(genome: GenomeRecord, gene_symbols: list[str]) -> str | None:
     """Extract the nucleotide sequence of a single-copy gene by exact GFF
-    gene= symbol match (case-insensitive). If more than one feature matches
+    gene= symbol match (case-insensitive). Partial genes (partial=true, cut
+    off at a contig edge) are skipped. If more than one feature matches
     (shouldn't happen for the symbols in GENE_SYMBOL_LOCI, but genomes are
     inconsistently annotated), the longest is kept."""
     wanted = {g.lower() for g in gene_symbols}
     hits = []
     for seqid, source, ftype, start, end, strand, attrs in genome.gff_features():
-        if ftype != "gene":
+        if ftype != "gene" or attrs.get("partial") == "true":
             continue
         if attrs.get("gene", "").lower() in wanted:
             hits.append((seqid, start, end, strand))
@@ -121,6 +122,10 @@ _KMER = 8
 # of 8-mers); the contaminant 16S copies found in some assemblies share far
 # less.
 _MIN_KMER_SHARED = 0.5
+# Upper bound for the 16S-23S spacer. Mycobacterial ITS is about 250-300 bp;
+# anything much longer means the adjacent 23S is missing from the assembly
+# and a more distant 23S was picked up.
+_MAX_ITS_LENGTH = 1000
 _type_strain_kmers: set[str] | None = None
 
 
@@ -209,7 +214,7 @@ def extract_its(genome: GenomeRecord) -> str | None:
         if not downstream:
             return None
         gap_start, gap_end = max(downstream, key=lambda f: f[1])[1], s16_start - 1
-    if gap_end <= gap_start:
+    if not 0 < gap_end - gap_start <= _MAX_ITS_LENGTH:
         return None
     frag = genome.contigs()[seqid][gap_start:gap_end]
     return revcomp(frag) if strand == "-" else frag
