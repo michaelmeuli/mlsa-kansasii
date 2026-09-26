@@ -120,13 +120,103 @@ full-length copy sharing the most 8-mers with the type-strain 16S
 share 0.98 to 1.0, the contaminants 0.05. GCF_019751035.1 and GCF_902825395.1
 therefore have no 16S or ITS. The other 68 genomes are unchanged.
 
-GCF_002086895.1 also has an ITS 8% from the type strain, which has not been
-investigated.
+GCF_002086895.1 also has an ITS 8% from the type strain and a persicum-type
+16S. See "What 16S can and cannot resolve" below.
+
+## What 16S can and cannot resolve
+
+### Reference genomes
+
+GTDB r232 gives 72 genomes for the 7 species. Not every locus could be
+extracted from every genome:
+
+| Species | Genomes | with hsp65 | with 16S (= with both) |
+|---|---|---|---|
+| kansasii | 42 | 42 | 42 |
+| persicum | 12 | 12 | 11 (GCF_902825395.1: only a partial 16S) |
+| pseudokansasii | 6 | 6 | 5 (GCF_019751035.1: only a partial 16S) |
+| attenuatum | 4 | 4 | 4 |
+| innocens | 3 | 3 | 3 |
+| ostraviense | 3 | 3 | 3 |
+| gastri | 2 | 2 | 2 |
+| **total** | **72** | **72** | **70** |
+
+The `*_excluded` runs drop 3 kansasii genomes (39 kansasii, 69 genomes with
+hsp65, 67 with 16S).
+
+Over the 1,511 16S positions all 70 genomes share, there are only 7 distinct
+sequences (H1 to H7):
+
+| Variant | Genomes | Differences from H1 |
+|---|---|---|
+| H1 | kansasii (41), ostraviense (3), gastri (2) | - |
+| H2 | persicum (11), kansasii GCF_002086895.1 | 8 |
+| H3 | pseudokansasii (5) | 8 (1 from H2) |
+| H4 | innocens (3) | 2 |
+| H5 to H7 | attenuatum (2 + 1 + 1) | 9 to 10 (1 to 3 from H2/H3) |
+
+- kansasii, ostraviense and gastri have identical 16S sequences. 16S cannot
+  separate them at all.
+- innocens differs from that group by 2 positions. persicum, pseudokansasii
+  and attenuatum differ from each other by only 1 to 3.
+- 16S mainly splits the complex into two groups:
+  kansasii/ostraviense/gastri/innocens and persicum/pseudokansasii/attenuatum,
+  8 to 12 positions apart.
+- kansasii GCF_002086895.1 carries the persicum 16S. It is the only source of
+  within-kansasii 16S variation (tolerance 0.0053; 0.0 without it). Its ITS is
+  also 8% from the type strain. It may be a persicum mislabelled in GTDB, or a
+  kansasii that acquired a persicum rRNA operon. This has not been checked
+  against ANI.
+- By the barcoding-gap criterion (`single_locus_pair_separation.tsv`), 16S
+  separates 12 of 21 species pairs. None of the pairs involving kansasii are
+  separated.
+
+### Isolates (main2, Sanger reads)
+
+The Sanger reads cover only part of the gene. 57 of 58 isolates are exactly
+the same distance from two species: kansasii/ostraviense (41),
+kansasii/persicum (9) or pseudokansasii/attenuatum (7). The one unambiguous
+isolate is an innocens.
+
+### Is hsp65+16S better than hsp65 alone? No.
+
+Species pairs separated in the reference genomes (barcoding gap), and
+unambiguous isolates among the 36 that have both reads:
+
+| | hsp65 | 16S | hsp65+16S |
+|---|---|---|---|
+| Reference pairs separated, all genomes | 17/21 | 12/21 | **15/21** |
+| Reference pairs separated, `_excluded` | 21/21 | 12/21 | **20/21** |
+| Unambiguous isolates, all genomes | 3/36 | 1/36 | **3/36** (the same 3) |
+| Unambiguous isolates, `_excluded` | 36/36 | 1/36 | **28/36** |
+
+- The combined locus calls the same nearest species as hsp65 for all 36
+  isolates.
+- With all genomes, adding 16S resolves nothing new. Relative to hsp65, it
+  loses the attenuatum-kansasii and innocens-kansasii reference pairs.
+- In the `_excluded` run, it loses 8 isolates that hsp65 alone resolves
+  (Mkan329-006, -020, -028, -039, -044, -049, -050, -146), and the
+  gastri-kansasii reference pair.
+
+Why adding 16S makes things worse:
+
+1. 16S is about 1,500 of the 1,993 aligned positions and has almost no
+   variation, so it shrinks every distance and margin by roughly 4x.
+2. The kansasii tolerance is set by the most divergent pair of kansasii
+   genomes, and GCF_002086895.1's persicum 16S makes that pair more
+   divergent. Combined kansasii tolerance: 0.0096 (0.0056 without
+   GCF_002086895.1). In the `_excluded` run: 0.0046 (0.0005 without it).
+
+So 16S adds nothing to hsp65 for species identification in this complex.
+hsp65 alone (and gyrA, main1's winning locus) is the better basis. A
+combined analysis only makes sense after GCF_002086895.1 is resolved, and
+even then 16S can at best confirm the broad two-group split.
 
 ## Reproducing
 
-ANI outputs are in `output/mlsa/genome_identity_check/` (`skani_ani.tsv`,
-`skani_long.tsv`, `genomes.txt`). skani ships in the GTDB-Tk container:
+ANI outputs were in `output/mlsa/genome_identity_check/` (`skani_ani.tsv`,
+`skani_long.tsv`, `genomes.txt`). As of 2026-09-26 that folder is no longer
+on the shares, so the command below has to be rerun to get them back. skani ships in the GTDB-Tk container:
 
 ```bash
 module load apptainer
