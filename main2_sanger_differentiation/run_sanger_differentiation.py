@@ -13,7 +13,7 @@ best (longest, then highest quality) read is taken as that isolate's
 representative sequence (no fwd/rev consensus assembly in this first pass).
 Representative sequences are oriented against a reference sequence, aligned
 together with the 7-species reference sequences from main1 (reused from
-results/main1_locus_discovery/alignments/*.raw.fasta when available, else
+output/mlsa/main1_locus_discovery/alignments/*.raw.fasta when available, else
 re-extracted directly), and each isolate is classified as unambiguously
 nested in one species' cluster, or ambiguous, using the same DNA-barcoding
 gap logic as main1 (isolate-to-species distance vs. that species' own

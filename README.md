@@ -42,9 +42,58 @@ sbatch main1_locus_discovery/submit_locus_discovery.sbatch
 sbatch main2_sanger_differentiation/submit_sanger_differentiation.sbatch   # after main1 finishes
 ```
 
-Outputs land in `results/main1_locus_discovery/` and
-`results/main2_sanger_differentiation/` (tables + `figures/`, not tracked in
-git — see `.gitignore`).
+Outputs are written to the shares, not into the repo:
+`/shares/sander.imm.uzh/MM/kansasii/output/mlsa/main1_locus_discovery/` and
+`/shares/sander.imm.uzh/MM/kansasii/output/mlsa/main2_sanger_differentiation/`
+(tables + `figures/`).
+
+## How main2 classifies isolates (`isolate_classification.tsv`)
+
+Implemented in `main2_sanger_differentiation/run_sanger_differentiation.py`.
+The table has one row per isolate (`probennummer`) per `locus` (`hsp65`,
+`16S`, `hsp65+16S`).
+
+1. **One sequence per isolate and locus.** Reads under all of an isolate's
+   TNR columns are pooled. Every `.ab1` read is quality-trimmed (Mott, reads
+   shorter than 100 bp are dropped) and the longest one is kept, with ties
+   going to higher mean quality. Forward and reverse reads are not merged
+   into a consensus. The read is flipped if needed to match the reference
+   strand.
+2. **Alignment.** The isolate reads are aligned with MAFFT together with the
+   reference sequences of the 7 species from main1
+   (`main1_locus_discovery/alignments/<locus>.raw.fasta`, or extracted again
+   if main1's output is missing). Distance is the uncorrected p-distance: the
+   fraction of positions that differ, counting only positions where neither
+   sequence has a gap.
+3. **Tolerance per species.** A species' tolerance is the largest distance
+   between any two of its own reference genomes. It is 0 if the species has
+   only one reference.
+4. **Classification.** For each species, take the isolate's distance to that
+   species' closest reference. The closest and second-closest species give
+   `nearest_species`/`nearest_dist` and `second_species`/`second_dist`.
+   `margin = second_dist - nearest_dist`, `tolerance` is the nearest
+   species' tolerance, and **`unambiguous = margin > tolerance`**. So the
+   second-closest species has to be further away than the nearest species'
+   own references are from each other.
+5. **hsp65+16S.** Only isolates with both reads get this row. The two
+   single-locus alignments are joined end to end, keeping only references
+   that have both loci, and steps 3–4 are repeated.
+
+Isolates still ambiguous with hsp65+16S get a suggested extra locus in
+`recommended_additional_loci.tsv`: the main1 candidate locus that best
+separates their nearest and second-closest species.
+
+Things to keep in mind when reading the table:
+
+- The tolerance comes from the reference genomes of the nearest species.
+  Diverse species such as kansasii (hsp65 tolerance 0.025) make isolates
+  ambiguous even when they sit right next to a reference.
+- Gaps are skipped, so a short read that overlaps little of the alignment is
+  judged on only a few positions.
+- Known issue: the kansasii 16S tolerance is 0.42 (42% difference between two
+  kansasii references, where under 1% would be expected). One reference 16S
+  is probably wrong or misaligned. Until that is fixed, no kansasii isolate
+  can be unambiguous on 16S, and the hsp65+16S tolerance is inflated too.
 
 The TNR isolates will also be Illumina-sequenced and speciated with the
 `kansasii` branch of
