@@ -96,13 +96,32 @@ not affect the ANI conclusion.
 - hsp65 called 11 of the 119 isolates persicum. Some could be atypical
   kansasii like these; only gyrA would tell them apart. Not checked.
 
-## Extraction artifact: GCF_900565995.1
+## Extraction artifact: contaminant 16S copies (fixed)
 
-The spurious 0.45 within-kansasii tolerance at 16S comes from
-GCF_900565995.1, whose extracted 16S is truncated (1,128 bp instead of about
-1,520 bp) and whose ITS is truncated (161 bp instead of about 285 bp). This is
-an extraction artifact, not biology. GCF_002086895.1 also has an ITS 8% from
-the type strain, which has not been investigated.
+The spurious within-kansasii 16S tolerance (0.42 to 0.45) came from
+GCF_900565995.1 (strain MK7). Its 16S was not truncated. It came from a
+different organism. The assembly has 13 contigs below 55% GC (about 42 kb in
+a 66% GC genome), and NCBI annotated two extra 16S copies on them:
+NZ_UPHJ01000162.1 (37% GC, partial, 1,128 bp) and NZ_UPHJ01000138.1 (52% GC,
+1,810 bp). The old `extract_16s` took the first annotated copy, which was the
+37% GC contaminant, and the 161 bp ITS came from the same wrong operon. The
+genome's own 16S (NZ_UPHJ01000094.1, 1,531 bp) is typical *M. kansasii*.
+persicum GCF_900566005.1 has the same contamination pattern (likely the same
+sequencing batch). It was unaffected only because its real copy is listed
+first.
+
+Two more genomes only have partial 16S copies at contig edges:
+pseudokansasii GCF_019751035.1 (95 bp, which inflated the pseudokansasii 16S
+tolerance to 0.41) and persicum GCF_902825395.1 (495 bp).
+
+`mlsa.loci.extract_16s`/`extract_its` now skip partial copies and keep the
+full-length copy sharing the most 8-mers with the type-strain 16S
+(GCF_000157895.3). A copy sharing under 50% is rejected. The real copies
+share 0.98 to 1.0, the contaminants 0.05. GCF_019751035.1 and GCF_902825395.1
+therefore have no 16S or ITS. The other 68 genomes are unchanged.
+
+GCF_002086895.1 also has an ITS 8% from the type strain, which has not been
+investigated.
 
 ## Reproducing
 

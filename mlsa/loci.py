@@ -112,51 +112,107 @@ def extract_gene_by_symbol(genome: GenomeRecord, gene_symbols: list[str]) -> str
     return revcomp(frag) if strand == "-" else frag
 
 
-def extract_16s(genome: GenomeRecord) -> str | None:
-    """Extract the full-length 16S rRNA gene via its rRNA/16S ribosomal RNA
-    product annotation (single copy, unambiguous)."""
+# Type-strain genome whose 16S serves as the reference for picking the right
+# 16S copy in the other genomes (see _select_16s).
+TYPE_STRAIN = ("kansasii", "GCF_000157895.3")
+_KMER = 8
+# Minimum fraction of a candidate 16S's 8-mers that must also occur in the
+# type-strain 16S. Complex members share >99% 16S identity (well above 0.9
+# of 8-mers); the contaminant 16S copies found in some assemblies share far
+# less.
+_MIN_KMER_SHARED = 0.5
+_type_strain_kmers: set[str] | None = None
+
+
+def _kmers(seq: str, k: int = _KMER) -> set[str]:
+    seq = seq.upper()
+    return {seq[i:i + k] for i in range(len(seq) - k + 1)}
+
+
+def _full_length_16s(genome: GenomeRecord) -> list[tuple[str, int, int, str, str]]:
+    """(seqid, start, end, strand, oriented sequence) for every non-partial
+    rRNA feature with product "16S ribosomal RNA". Partial copies sit at
+    contig edges and are truncated."""
+    contigs = genome.contigs()
+    copies = []
     for seqid, source, ftype, start, end, strand, attrs in genome.gff_features():
-        if ftype != "rRNA":
+        if ftype != "rRNA" or "16S ribosomal RNA" not in attrs.get("product", ""):
             continue
-        if "16S ribosomal RNA" in attrs.get("product", ""):
-            contig_seq = genome.contigs().get(seqid)
-            if contig_seq is None:
-                continue
-            frag = contig_seq[start - 1:end]
-            return revcomp(frag) if strand == "-" else frag
-    return None
+        if attrs.get("partial") == "true" or seqid not in contigs:
+            continue
+        frag = contigs[seqid][start - 1:end]
+        copies.append((seqid, start, end, strand, revcomp(frag) if strand == "-" else frag))
+    return copies
+
+
+def _type_strain_16s_kmers() -> set[str]:
+    global _type_strain_kmers
+    if _type_strain_kmers is None:
+        from . import GTDB_MLSA_ROOT
+        species, accession = TYPE_STRAIN
+        sp_dir = GTDB_MLSA_ROOT / species
+        ref = GenomeRecord(accession, species, sp_dir / f"{accession}.fna", sp_dir / f"{accession}.gff")
+        copies = _full_length_16s(ref)
+        if len(copies) != 1:
+            raise ValueError(f"Expected exactly one full-length 16S in type strain {accession}, found {len(copies)}")
+        _type_strain_kmers = _kmers(copies[0][4])
+    return _type_strain_kmers
+
+
+def _select_16s(genome: GenomeRecord) -> tuple[str, int, int, str, str] | None:
+    """Pick the genome's own 16S copy. Some assemblies contain contaminant
+    contigs with their own 16S (e.g. GCF_900565995.1 and GCF_900566005.1 each
+    carry two low-GC, non-mycobacterial 16S copies next to the real one), so
+    the first annotated copy is not necessarily the right one. Among the
+    full-length copies, keep the one sharing the most 8-mers with the
+    type-strain 16S, and none if even that one is too dissimilar."""
+    copies = _full_length_16s(genome)
+    if not copies:
+        return None
+    ref = _type_strain_16s_kmers()
+
+    def shared(copy):
+        km = _kmers(copy[4])
+        return len(km & ref) / len(km) if km else 0.0
+
+    best = max(copies, key=shared)
+    return best if shared(best) >= _MIN_KMER_SHARED else None
+
+
+def extract_16s(genome: GenomeRecord) -> str | None:
+    """Extract the full-length 16S rRNA gene (see _select_16s)."""
+    best = _select_16s(genome)
+    return best[4] if best else None
 
 
 def extract_its(genome: GenomeRecord) -> str | None:
-    """Extract the 16S-23S intergenic spacer (ITS): the gap between the 16S
-    and 23S rRNA features on the same contig."""
-    by_contig: dict[str, list[tuple[int, int, str, str]]] = {}
-    for seqid, source, ftype, start, end, strand, attrs in genome.gff_features():
-        if ftype != "rRNA":
-            continue
-        product = attrs.get("product", "")
-        if "16S ribosomal RNA" in product or "23S ribosomal RNA" in product:
-            by_contig.setdefault(seqid, []).append((start, end, strand, product))
-
-    contigs = genome.contigs()
-    for seqid, feats in by_contig.items():
-        s16 = next((f for f in feats if "16S" in f[3]), None)
-        s23 = next((f for f in feats if "23S" in f[3]), None)
-        if not s16 or not s23:
-            continue
-        strand = s16[2]
-        if strand == "+":
-            gap_start, gap_end = s16[1], s23[0] - 1
-        else:
-            gap_start, gap_end = s23[1], s16[0] - 1
-        if gap_end <= gap_start:
-            continue
-        contig_seq = contigs.get(seqid)
-        if contig_seq is None:
-            continue
-        frag = contig_seq[gap_start:gap_end]
-        return revcomp(frag) if strand == "-" else frag
-    return None
+    """Extract the 16S-23S intergenic spacer (ITS): the gap between the
+    selected 16S copy (see _select_16s) and the next 23S rRNA feature
+    downstream of it on the same contig and strand."""
+    best = _select_16s(genome)
+    if best is None:
+        return None
+    seqid, s16_start, s16_end, strand, _ = best
+    s23_feats = [
+        (start, end)
+        for fseqid, source, ftype, start, end, fstrand, attrs in genome.gff_features()
+        if fseqid == seqid and ftype == "rRNA" and fstrand == strand
+        and "23S ribosomal RNA" in attrs.get("product", "")
+    ]
+    if strand == "+":
+        downstream = [f for f in s23_feats if f[0] > s16_end]
+        if not downstream:
+            return None
+        gap_start, gap_end = s16_end, min(downstream)[0] - 1
+    else:
+        downstream = [f for f in s23_feats if f[1] < s16_start]
+        if not downstream:
+            return None
+        gap_start, gap_end = max(downstream, key=lambda f: f[1])[1], s16_start - 1
+    if gap_end <= gap_start:
+        return None
+    frag = genome.contigs()[seqid][gap_start:gap_end]
+    return revcomp(frag) if strand == "-" else frag
 
 
 _BASE_CODE = {"A": 0, "C": 1, "G": 2, "T": 3}

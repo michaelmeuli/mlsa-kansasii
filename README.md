@@ -90,10 +90,9 @@ Things to keep in mind when reading the table:
   ambiguous even when they sit right next to a reference.
 - Gaps are skipped, so a short read that overlaps little of the alignment is
   judged on only a few positions.
-- Known issue: the kansasii 16S tolerance is 0.42 (42% difference between two
-  kansasii references, where under 1% would be expected). One reference 16S
-  is probably wrong or misaligned. Until that is fixed, no kansasii isolate
-  can be unambiguous on 16S, and the hsp65+16S tolerance is inflated too.
+- Reference 16S/ITS: some GTDB assemblies contain contaminant contigs with
+  their own 16S. `mlsa.loci.extract_16s` skips partial copies and keeps the
+  copy closest to the type-strain 16S (see LIT.md, "Extraction artifact").
 
 The TNR isolates will also be Illumina-sequenced and speciated with the
 `kansasii` branch of

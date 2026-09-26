@@ -7,8 +7,9 @@ Mycobacterium (groEL1/groEL2) are annotated identically in NCBI GFFs
 (gene=groL, product="chaperonin GroEL"), so gene-symbol extraction cannot
 tell them apart, while the TB-11/TB-12(w) primers only bind the groEL2 copy
 the hsp65 assay actually targets. 16S is extracted directly from the GFF
-rRNA/16S ribosomal RNA feature instead (see mlsa.loci.extract_16s): it is
-single-copy and unambiguous in these genomes, and using the full-length gene
+rRNA/16S ribosomal RNA feature instead (see mlsa.loci.extract_16s, which
+picks the genome's own copy where contaminant contigs add extra ones), and
+using the full-length gene
 is a strict superset of whatever fragment any particular 16S sequencing
 primer pair amplifies, so it aligns correctly against the lab's 16S Sanger
 reads regardless of exactly which primers were used for a given read.
