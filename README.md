@@ -24,6 +24,9 @@ the lab's existing hsp65 + 16S Sanger data already get?
   hsp65/16S Sanger reads actually resolve species, and recommends which
   additional locus (from main1's candidates) would resolve the ambiguous
   ones.
+- `genome_identity_check/` — all-vs-all ANI (skani) between the reference
+  genomes, to check whether genomes with atypical marker genes are really
+  another species (see LIT.md).
 
 ## Setup
 
@@ -40,12 +43,29 @@ bash scripts/link_sanger_kansasii.sh
 bash scripts/link_gtdb_kansasii_complex.sh
 sbatch main1_locus_discovery/submit_locus_discovery.sbatch
 sbatch main2_sanger_differentiation/submit_sanger_differentiation.sbatch   # after main1 finishes
+sbatch genome_identity_check/submit_genome_identity_check.sbatch           # independent of main1/main2
 ```
 
 Outputs are written to the shares, not into the repo:
 `/shares/sander.imm.uzh/MM/kansasii/output/mlsa/main1_locus_discovery/` and
 `/shares/sander.imm.uzh/MM/kansasii/output/mlsa/main2_sanger_differentiation/`
-(tables + `figures/`).
+(tables + `figures/`), and `output/mlsa/genome_identity_check/`.
+
+## How outputs are used downstream
+
+| Step | Produces | Used by |
+|---|---|---|
+| `scripts/link_sanger_kansasii.sh` | `.ab1` symlinks in `data/sanger/seq_kansasii/` | main2 |
+| `scripts/link_gtdb_kansasii_complex.sh` | genome `.fna`/`.gff` symlinks in `data/gtdb_genomes/Mycobacteriaceae/mlsa-kansasii/` | main1, main2 (only if main1's output is missing), genome_identity_check |
+| main1 | `alignments/<locus>.raw.fasta` | main2 (hsp65 and 16S reference sequences) |
+| main1 | `single_locus_pair_separation.tsv` | main2 (`recommended_additional_loci.tsv`) |
+| main1 | `combo_results.tsv`, `winning_combo/`, `figures/`, `SUMMARY.txt` | final results |
+| main2 | `isolate_classification.tsv`, `recommended_additional_loci.tsv`, `figures/`, `SUMMARY.txt` | final results |
+| `*_excluded` variants | the same, in their own output folders | main2_excluded reads main1_excluded; otherwise final results |
+| genome_identity_check | `skani_ani.tsv`, `skani_long.tsv`, `species_ani_summary.tsv` | no code; the ANI numbers are cited by hand in LIT.md |
+
+The genome_identity_check results inform decisions about which reference
+genomes to trust or exclude. No pipeline step reads them.
 
 ## How main2 classifies isolates (`isolate_classification.tsv`)
 

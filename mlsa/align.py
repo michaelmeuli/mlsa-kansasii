@@ -3,7 +3,8 @@
 Heavy binaries (mafft, iqtree) run inside the shared Singularity containers
 used by immensekansasii rather than being installed into env_mlsa, per the
 project's "keep the login-node conda env light" requirement. blast/iqtree
-are reused as-is from immensekansasii's container set; mafft is pulled by
+are reused as-is from immensekansasii's container set (skani from the
+GTDB-Tk image); mafft is pulled by
 Singularity/pull_singularity_img.sh. See that script for exact image names.
 """
 from __future__ import annotations
@@ -23,6 +24,8 @@ CONTAINER_ROOT = Path(
 )
 MAFFT_IMG = CONTAINER_ROOT / "quay.io-biocontainers-mafft-7.525--h031d066_1.img"
 IQTREE_IMG = CONTAINER_ROOT / "quay.io-biocontainers-iqtree-3.1.3--h8471819_0.img"
+# skani ships in the GTDB-Tk container.
+SKANI_IMG = CONTAINER_ROOT / "quay.io-biocontainers-gtdbtk-2.7.2--pyhdfd78af_1.img"
 
 
 def _singularity_exec(img: Path, cmd: list[str], **kwargs) -> subprocess.CompletedProcess:
@@ -72,6 +75,25 @@ def run_iqtree(alignment_fasta: Path, prefix: Path, model: str = "GTR+G") -> Pat
     # ".../16S.tree" into ".../16S.treefile" instead of
     # ".../16S.tree.treefile"), so build the path by straight concatenation.
     return Path(f"{prefix}.treefile")
+
+
+def run_skani_triangle(genome_list: Path, output_tsv: Path, threads: int = 8) -> Path:
+    """All-vs-all ANI with skani triangle for the .fna paths listed in
+    genome_list. -E writes one row per pair (ANI plus the aligned fraction
+    of each genome) instead of a matrix; -s 70 lowers the screening cutoff
+    so that the more distant complex members are not dropped."""
+    output_tsv.parent.mkdir(parents=True, exist_ok=True)
+    _singularity_exec(
+        SKANI_IMG,
+        ["skani", "triangle", "-l", str(genome_list), "-E", "-t", str(threads),
+         "-s", "70", "-o", str(output_tsv)],
+    )
+    return output_tsv
+
+
+def skani_version() -> str:
+    return _singularity_exec(SKANI_IMG, ["skani", "--version"],
+                             capture_output=True, text=True).stdout.strip()
 
 
 def orient_to_reference(seq: str, reference: str) -> str:

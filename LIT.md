@@ -164,9 +164,12 @@ sequences (H1 to H7):
   8 to 12 positions apart.
 - kansasii GCF_002086895.1 carries the persicum 16S. It is the only source of
   within-kansasii 16S variation (tolerance 0.0053; 0.0 without it). Its ITS is
-  also 8% from the type strain. It may be a persicum mislabelled in GTDB, or a
-  kansasii that acquired a persicum rRNA operon. This has not been checked
-  against ANI.
+  also 8% from the type strain. Genome-wide it is a real *M. kansasii*: ANI
+  99.15% to the type strain (AF 93%) and 98.6-99.7% to the other kansasii,
+  versus at most 93.3% to persicum and 93.5% to any other species
+  (`genome_identity_check`). So it is a kansasii with a persicum-like rRNA
+  operon, like the persicum-like hsp65 of K4/K14/K19. Gene transfer or an
+  assembly artifact are both possible; neither was tested.
 - By the barcoding-gap criterion (`single_locus_pair_separation.tsv`), 16S
   separates 12 of 21 species pairs. None of the pairs involving kansasii are
   separated.
@@ -214,17 +217,29 @@ even then 16S can at best confirm the broad two-group split.
 
 ## Reproducing
 
-ANI outputs were in `output/mlsa/genome_identity_check/` (`skani_ani.tsv`,
-`skani_long.tsv`, `genomes.txt`). As of 2026-09-26 that folder is no longer
-on the shares, so the command below has to be rerun to get them back. skani ships in the GTDB-Tk container:
+The ANI results come from `genome_identity_check/`:
 
 ```bash
-module load apptainer
-singularity exec --bind /shares \
-  /shares/sander.imm.uzh/software/pipelines/IMMense/IMMense_dependencies/containers/quay.io-biocontainers-gtdbtk-2.7.2--pyhdfd78af_1.img \
-  skani triangle -l genomes.txt -E -t 8 -s 70 -o skani_ani.tsv
+cd genome_identity_check
+sbatch submit_genome_identity_check.sbatch
 ```
 
-Run it as an sbatch job rather than on the login node. Node `u24-cva0000-129`
-has no `/etc/resolv.conf` and Singularity fails there, so use
-`--exclude=u24-cva0000-129`.
+`run_genome_identity_check.py` lists the same 72 GTDB r232 genomes main1
+uses (`mlsa.loci.discover_genomes`) and runs `skani triangle -E -s 70`
+(skani 0.3.2 from the GTDB-Tk container, `mlsa.align.run_skani_triangle`).
+It writes to `output/mlsa/genome_identity_check/`:
+
+- `genomes.txt`: the `.fna` paths.
+- `skani_ani.tsv`: raw skani output, one row per genome pair.
+- `skani_long.tsv`: each pair in both directions with accession, species,
+  ANI and AF (the smaller of the two aligned fractions).
+- `species_ani_summary.tsv`: ANI range per species pair.
+- `skani_version.txt`
+
+The sbatch file excludes node `u24-cva0000-129`, which has no
+`/etc/resolv.conf`, so Singularity fails there.
+
+The original run (job 6226012, 2026-09-21) is in
+`output-old/mlsa/genome_identity_check/`. The folder was moved there
+together with the rest of `output/`. The rerun on 2026-09-26 gives an
+identical `skani_long.tsv`.
