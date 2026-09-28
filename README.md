@@ -67,7 +67,7 @@ scp -r mimeul@cluster.s3it.uzh.ch:/shares/sander.imm.uzh/MM/kansasii/output/* "$
 | main1 | `alignments/<locus>.raw.fasta` | main2 (hsp65 and 16S reference sequences) |
 | main1 | `single_locus_pair_separation.tsv` | main2 (`recommended_additional_loci.tsv`) |
 | main1 | `combo_results.tsv`, `winning_combo/`, `figures/`, `SUMMARY.txt` | final results |
-| main2 | `isolate_classification.tsv`, `recommended_additional_loci.tsv`, `figures/`, `SUMMARY.txt` | final results |
+| main2 | `isolate_classification.tsv`, `representative_reads.tsv`, `recommended_additional_loci.tsv`, `figures/`, `SUMMARY.txt` | final results |
 | `*_excluded` variants | the same, in their own output folders | main2_excluded reads main1_excluded; otherwise final results |
 | genome_identity_check | `skani_ani.tsv`, `skani_long.tsv`, `species_ani_summary.tsv` | no code; the ANI numbers are cited by hand in LIT.md |
 
@@ -78,17 +78,23 @@ genomes to trust or exclude. No pipeline step reads them.
 
 Implemented in `main2_sanger_differentiation/run_sanger_differentiation.py`.
 The table has one row per isolate (`probennummer`) per `locus` (`hsp65`,
-`16S`, `hsp65+16S`).
+`16S`, `hsp65+16S`). `TNR` is the TNR of the read that was picked (for
+hsp65+16S, both TNRs, hsp65 first, if they differ).
 
 1. **One sequence per isolate and locus.** Reads under all of an isolate's
    TNR columns are pooled. The locus comes from the filename
    (`mlsa.sanger_io.classify_locus`): hsp65 by gene name or TB-11/TB-12(w)
    primer in their historical spellings, 16S by the MBAK-14, Mbak259r or
    Mbak264r primer. Every `.ab1` read is quality-trimmed (Mott, reads
-   shorter than 100 bp are dropped) and the longest one is kept, with ties
-   going to higher mean quality. Forward and reverse reads are not merged
-   into a consensus. The read is flipped if needed to match the reference
-   strand.
+   shorter than 100 bp are dropped) and flipped if needed to match the
+   reference strand. Each read is compared to every reference by pairwise
+   local alignment. The longest read (ties going to higher mean quality) that
+   is within `max_dist` (step 4) of some reference is kept. If no read is,
+   the longest read is kept anyway and ends up NA. So a failed first read
+   (contaminant, mixed culture) doesn't hide a good repeat or re-extraction.
+   Forward and reverse reads are not merged into a consensus. The chosen read
+   per isolate and locus, with its screening distance and how many reads
+   were available, is in `representative_reads.tsv`.
 2. **Alignment.** The isolate reads are aligned with MAFFT together with the
    reference sequences of the 7 species from main1
    (`main1_locus_discovery/alignments/<locus>.raw.fasta`, or extracted again

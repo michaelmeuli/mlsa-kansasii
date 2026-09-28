@@ -9,8 +9,9 @@ sequenced to resolve the isolates that remain ambiguous.
 Isolates are keyed by PROBENNUMMER: reads under any of an isolate's TNRs
 (TNR, TNR_NGS, TNR3..TNR6) are pooled. For each isolate + locus, all
 matching .ab1 reads are quality-trimmed and the
-best (longest, then highest quality) read is taken as that isolate's
-representative sequence (no fwd/rev consensus assembly in this first pass).
+best (longest, then highest quality) read that lies inside the complex is
+taken as that isolate's representative sequence (no fwd/rev consensus
+assembly in this first pass); see pick_representative.
 Representative sequences are oriented against a reference sequence, aligned
 together with the 7-species reference sequences from main1 (reused from
 output/mlsa/main1_locus_discovery/alignments/*.raw.fasta when available, else
@@ -49,6 +50,7 @@ from mlsa import (  # noqa: E402
 from mlsa.align import (  # noqa: E402
     orient_to_reference,
     p_distance_matrix,
+    pairwise_p_distance,
     read_fasta,
     run_mafft,
     write_fasta,
@@ -96,20 +98,42 @@ def collect_isolate_reads(tnr_to_pnr: dict[str, str]) -> dict[str, dict[str, lis
     return by_locus_pnr
 
 
-def pick_representative(paths: list[Path]) -> tuple[str, float, Path] | None:
-    """Quality-trim every candidate read for a (probennummer, locus) and keep the
-    longest (ties broken by mean quality) as the representative sequence."""
+def reference_max_distance(refs: dict[str, str], prefix: Path) -> float:
+    """Largest p-distance between two reference sequences, from a MAFFT
+    alignment of the references alone (written to <prefix>.raw/.aligned.fasta)."""
+    raw = prefix.parent / f"{prefix.name}.raw.fasta"
+    aligned = prefix.parent / f"{prefix.name}.aligned.fasta"
+    write_fasta(refs, raw)
+    run_mafft(raw, aligned)
+    return float(p_distance_matrix(read_fasta(aligned)).max().max())
+
+
+def pick_representative(paths: list[Path], refs: dict[str, str],
+                        max_dist: float) -> dict | None:
+    """Quality-trim every candidate read for a (probennummer, locus), orient it
+    against the references and find its distance to the nearest reference
+    (pairwise local alignment). Keep the longest read (ties broken by mean
+    quality) among those within max_dist of a reference, i.e. inside the
+    complex. If no read is, fall back to the longest read overall; it is
+    reported as NA later. This way a failed first read (contaminant, mixed
+    culture) doesn't hide a good repeat or re-extraction."""
+    ref_example = next(iter(refs.values()))
     candidates = []
     for path in paths:
         trimmed = load_trimmed_ab1(path)
         if trimmed is None:
             continue
         seq, mean_q = trimmed
-        candidates.append((seq, mean_q, path))
+        seq = orient_to_reference(seq, ref_example)
+        nearest = min(pairwise_p_distance(seq, ref) for ref in refs.values())
+        candidates.append({"seq": seq, "mean_q": mean_q, "path": path, "screen_dist": nearest})
     if not candidates:
         return None
-    candidates.sort(key=lambda c: (len(c[0]), c[1]), reverse=True)
-    return candidates[0]
+    candidates.sort(key=lambda c: (len(c["seq"]), c["mean_q"]), reverse=True)
+    inside = [c for c in candidates if c["screen_dist"] <= max_dist]
+    chosen = inside[0] if inside else candidates[0]
+    return {**chosen, "n_reads": len(paths), "n_usable": len(candidates),
+            "n_inside": len(inside), "longest_rejected": chosen is not candidates[0]}
 
 
 def load_reference_sequences(locus: str, main1_results: Path = MAIN1_RESULTS,
@@ -271,25 +295,38 @@ def main(results_dir: Path = RESULTS, main1_results: Path = MAIN1_RESULTS,
     by_locus_pnr = collect_isolate_reads(tnr_to_pnr)
 
     isolate_seqs: dict[str, dict[str, str]] = {}
+    read_rows = []
     for locus in LOCI:
         refs = load_reference_sequences(locus, main1_results, exclude_accessions)
-        ref_example = next(iter(refs.values())) if refs else None
+        max_ref_dist = reference_max_distance(refs, results_dir / "alignments" / f"{locus}.refs")
+        log.info("%s: reads further than %.4f from every reference are skipped when another read is inside",
+                 locus, max_ref_dist)
 
         seqs = dict(refs)
-        n_ok = n_fail = 0
+        n_ok = n_fail = n_switched = 0
         for pnr, paths in by_locus_pnr[locus].items():
-            rep = pick_representative(paths)
+            rep = pick_representative(paths, refs, max_ref_dist)
             if rep is None:
                 n_fail += 1
                 continue
-            seq, mean_q, source = rep
-            if ref_example:
-                seq = orient_to_reference(seq, ref_example)
-            seqs[f"isolate__{pnr}"] = seq
+            seqs[f"isolate__{pnr}"] = rep["seq"]
             n_ok += 1
-        log.info("%s: %d isolates with a usable representative read, %d with none (of %d isolates seen)",
-                  locus, n_ok, n_fail, len(by_locus_pnr[locus]))
+            n_switched += rep["longest_rejected"]
+            read_rows.append({
+                "probennummer": pnr, "locus": locus,
+                "TNR": extract_tnr(rep["path"].name, tnr_to_pnr), "read": rep["path"].name,
+                "length": len(rep["seq"]), "mean_q": round(rep["mean_q"], 1),
+                "screen_dist": rep["screen_dist"], "max_dist": max_ref_dist,
+                "n_reads": rep["n_reads"], "n_usable": rep["n_usable"], "n_inside": rep["n_inside"],
+                "longest_rejected": rep["longest_rejected"],
+            })
+        log.info("%s: %d isolates with a usable representative read, %d with none (of %d isolates seen); "
+                  "%d use a shorter read because the longest was outside the complex",
+                  locus, n_ok, n_fail, len(by_locus_pnr[locus]), n_switched)
         isolate_seqs[locus] = seqs
+    reads_df = pd.DataFrame(read_rows)
+    reads_df.to_csv(results_dir / "representative_reads.tsv", sep="\t", index=False)
+    picked_tnr = {(r["locus"], r["probennummer"]): r["TNR"] for r in read_rows}
 
     species_of = {name: species_of_name(name) for seqs in isolate_seqs.values() for name in seqs}
 
@@ -322,6 +359,14 @@ def main(results_dir: Path = RESULTS, main1_results: Path = MAIN1_RESULTS,
         df_both = pd.DataFrame()
 
     results_df = pd.concat(all_result_dfs, ignore_index=True) if all_result_dfs else pd.DataFrame()
+    if len(results_df):
+        # TNR of the read that was finally picked. hsp65+16S joins the two
+        # loci's TNRs (hsp65 first) when they come from different TNRs.
+        def tnr_of(row) -> str:
+            loci = row["locus"].split("+")
+            tnrs = [picked_tnr[(locus, row["probennummer"])] for locus in loci]
+            return ",".join(dict.fromkeys(tnrs))
+        results_df["TNR"] = results_df.apply(tnr_of, axis=1)
     results_df.to_csv(results_dir / "isolate_classification.tsv", sep="\t", index=False)
 
     summary_lines = ["Differentiation summary (unambiguous / total isolates; "

@@ -113,6 +113,26 @@ def orient_to_reference(seq: str, reference: str) -> str:
     return rc if rev_score > fwd_score else seq
 
 
+_PAIRWISE = Align.PairwiseAligner(mode="local", match_score=2, mismatch_score=-3,
+                                  open_gap_score=-5, extend_gap_score=-2)
+
+
+def pairwise_p_distance(seq: str, reference: str, min_compared: int = 100) -> float:
+    """p-distance between seq and reference over their best local alignment,
+    counting only columns where both have an unambiguous base (A/C/G/T). Returns
+    inf if fewer than min_compared columns can be compared. For screening a
+    single read without building a multiple alignment."""
+    seq, reference = seq.upper(), reference.upper()
+    aln = _PAIRWISE.align(seq, reference)[0]
+    compared = mismatches = 0
+    for (s1, e1), (s2, e2) in zip(*aln.aligned):
+        for a, b in zip(seq[s1:e1], reference[s2:e2]):
+            if a in "ACGT" and b in "ACGT":
+                compared += 1
+                mismatches += a != b
+    return mismatches / compared if compared >= min_compared else float("inf")
+
+
 def p_distance_matrix(alignment: dict[str, str]) -> pd.DataFrame:
     """Pairwise uncorrected p-distance (fraction mismatched over aligned
     columns where neither sequence has a gap) for an already-aligned set of

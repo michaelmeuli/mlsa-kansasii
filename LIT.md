@@ -87,8 +87,8 @@ not affect the ANI conclusion.
 
 - gyrA is unaffected and still separates all 7 species with or without the
   three genomes.
-- The excluded run (hsp65 alone: 105/127 isolates unambiguous, versus 7/127
-  with all genomes; 22 are NA, see "kansasii vs gastri at hsp65") is an
+- The excluded run (hsp65 alone: 110/127 isolates unambiguous, versus 8/127
+  with all genomes; 17 are NA, see "kansasii vs gastri at hsp65") is an
   over-estimate. The three genomes are the only ones
   that inflate kansasii's within-species tolerance at hsp65, so dropping them
   assumes atypical-hsp65 kansasii do not occur.
@@ -238,7 +238,10 @@ reference, while the complex spans at most 0.054 at hsp65. They are not
 kansasii-complex hsp65 (probably another organism's groEL or a mixed read),
 and gastri was only the least bad match, 0.003 ahead of kansasii. main2 now
 reports such reads as NA (README, step 4). In the `_excluded` run, 081 and
-097 had even been marked `unambiguous`.
+097 had even been marked `unambiguous`. Both 081 and 097 have a later
+re-extraction or repeat read inside the complex, which main2 now picks
+instead (README, step 1): 081 is pseudokansasii (0.005), 097 is kansasii
+(0.005). 179 has no good read and stays NA.
 
 ### The amplicon
 
@@ -315,11 +318,27 @@ positions in `main2_sanger_differentiation/alignments/hsp65.aligned.fasta`):
 
 ### Reads outside the complex
 
-With the NA rule, 22 of 127 hsp65 reads, 4 of 65 16S reads and 10 of 42
-hsp65+16S rows are NA (the same counts in the `_excluded` run). Most of those
-hsp65 reads are 0.19-0.44 from every reference, so they need a look at the
-chromatogram (or a BLAST) before they count as kansasii-complex hsp65.
-Unambiguous hsp65 calls in the `_excluded` run drop from 123 to 105 of 127.
+With the NA rule, and with the longest read in the complex picked per
+isolate, 17 of 127 hsp65 reads, 1 of 65 16S reads and 8 of 42 hsp65+16S rows
+are NA (the same counts in the `_excluded` run). If only the longest read is
+used, the counts are 22, 4 and 10. The reads picked instead are for
+Mkan329-020, -050, -081, -097 and -142 (hsp65) and one 16S isolate, all
+listed in `representative_reads.tsv` (`longest_rejected`). For 081, 097 and
+142 the filenames mark the good reads as a new extraction (`n.Extr`), a
+repeat (`wdh`) or new (`neu`), so the lab had already repeated them.
+
+Most of the remaining NA hsp65 reads are 0.15-0.44 from every reference in
+every read an isolate has (for example 006, 028, 076, 114, 145, 164, 170), so
+the culture is probably not kansasii complex or is mixed. Check the
+chromatogram (or BLAST) before counting them. Mkan329-102 is different: all
+4 reads are 0.061-0.067 from innocens/kansasii, just outside the cutoff, so
+it may be a real complex member with an hsp65 allele missing from the
+references. Mkan329-025 passes the read screen (0.006 by local alignment)
+but is 0.12 in the MAFFT alignment, because the screen ignores badly
+matching read ends and the final alignment counts them.
+
+Unambiguous hsp65 calls: 8 of 127 (full references) and 110 of 127
+(`_excluded`), compared with 9 and 123 before the NA rule.
 
 ## Reproducing
 
