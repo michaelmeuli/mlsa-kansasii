@@ -87,8 +87,9 @@ not affect the ANI conclusion.
 
 - gyrA is unaffected and still separates all 7 species with or without the
   three genomes.
-- The excluded run (hsp65 alone: 123/127 isolates unambiguous, versus 9/127
-  with all genomes) is an over-estimate. The three genomes are the only ones
+- The excluded run (hsp65 alone: 105/127 isolates unambiguous, versus 7/127
+  with all genomes; 22 are NA, see "kansasii vs gastri at hsp65") is an
+  over-estimate. The three genomes are the only ones
   that inflate kansasii's within-species tolerance at hsp65, so dropping them
   assumes atypical-hsp65 kansasii do not occur.
 - Treat the full-reference runs as primary and the `*_excluded` runs as a
@@ -227,6 +228,98 @@ So 16S adds nothing to hsp65 for species identification in this complex.
 hsp65 alone (and gyrA, main1's winning locus) is the better basis. A
 combined analysis only makes sense after GCF_002086895.1 is resolved, and
 even then 16S can at best confirm the broad two-group split.
+
+## kansasii vs gastri at hsp65
+
+**Conclusion: no isolate is *M. gastri*.** The lab's hsp65 typing says the
+same thing. Three isolates (Mkan329-081, -097, -179) used to get
+`nearest_species = gastri`, but their hsp65 reads are 0.20-0.23 from every
+reference, while the complex spans at most 0.054 at hsp65. They are not
+kansasii-complex hsp65 (probably another organism's groEL or a mixed read),
+and gastri was only the least bad match, 0.003 ahead of kansasii. main2 now
+reports such reads as NA (README, step 4). In the `_excluded` run, 081 and
+097 had even been marked `unambiguous`.
+
+### The amplicon
+
+The 39 typical kansasii genomes and the 2 gastri genomes differ consistently
+at only 7 positions of the 441 bp TB-11/TB-12w amplicon (about 1.6%;
+positions in `main2_sanger_differentiation/alignments/hsp65.aligned.fasta`):
+
+| Position | 129 | 159 | 177 | 222 | 314 | 335 | 395 |
+|---|---|---|---|---|---|---|---|
+| typical kansasii (39) | T | T | A | C | G | C | C |
+| gastri (2) | C | C | **G** | G | C | T | G |
+| persicum | C | C | A | G | C | T | G |
+| K4/K14/K19 (atypical kansasii) | C | C | A | G | C | T | G |
+
+- At 6 of the 7 positions gastri has the same allele as persicum (and
+  ostraviense and pseudokansasii). Only position 177 (G) is specific to
+  gastri.
+- K4/K14/K19 carry the persicum/gastri allele at 6 of the 7 positions. This
+  is why including them raises the kansasii hsp65 tolerance (0.025) above the
+  kansasii-gastri distance.
+- Isolates whose second-closest species is gastri are all typical kansasii,
+  0.021-0.030 from gastri. No isolate has the full gastri pattern and a
+  gastri nearest match.
+- Because kansasii and gastri are about 98.4% identical here, a percent
+  identity cutoff (for example ≥97%, McNabb 2004) accepts both. The call has
+  to come from the best match and its margin over the next species.
+
+### Literature (via PubMed)
+
+- Richter E, et al. *Identification of Mycobacterium kansasii by using a DNA
+  probe (AccuProbe) and molecular techniques.* J Clin Microbiol
+  1999;37:964-970.
+  [doi:10.1128/JCM.37.4.964-970.1999](https://doi.org/10.1128/JCM.37.4.964-970.1999).
+  Gastri's 16S is identical to kansasii's, so hsp65 PRA and the ITS spacer
+  were used. All gastri strains tested were AccuProbe-negative.
+- Telenti A, et al. *Rapid identification of mycobacteria to the species
+  level by PCR and restriction enzyme analysis.* J Clin Microbiol
+  1993;31:175-178.
+  [doi:10.1128/jcm.31.2.175-178.1993](https://doi.org/10.1128/jcm.31.2.175-178.1993).
+  hsp65 PRA (BstEII/HaeIII) on the same 441 bp fragment (Bern, with Böttger).
+- Picardeau M, et al. J Clin Microbiol 1997;35:25-32
+  ([doi:10.1128/jcm.35.1.25-32.1997](https://doi.org/10.1128/jcm.35.1.25-32.1997))
+  and Alcaide F, et al. J Clin Microbiol 1997;35:1959-1964
+  ([doi:10.1128/jcm.35.8.1959-1964.1997](https://doi.org/10.1128/jcm.35.8.1959-1964.1997)).
+  These define kansasii subtypes I-V by hsp65 PRA.
+- Taillard C, et al. *Clinical implications of M. kansasii species
+  heterogeneity: Swiss National Survey.* J Clin Microbiol 2003;41:1240-1244.
+  [doi:10.1128/JCM.41.3.1240-1244.2003](https://doi.org/10.1128/JCM.41.3.1240-1244.2003).
+  Subtype 1: 67%, subtype 2: 21%, subtype 3: 8%.
+- McNabb A, et al. J Clin Microbiol 2004;42:3000-3011
+  ([doi:10.1128/JCM.42.7.3000-3011.2004](https://doi.org/10.1128/JCM.42.7.3000-3011.2004))
+  and Kim H, et al. Int J Syst Evol Microbiol 2005;55:1649-1656
+  ([doi:10.1099/ijs.0.63553-0](https://doi.org/10.1099/ijs.0.63553-0)).
+  hsp65 sequence databases. McNabb accepts unambiguous matches of ≥97%.
+- Tagini F, et al. Int J Syst Evol Microbiol 2019;69:1696-1704.
+  [doi:10.1099/ijsem.0.003378](https://doi.org/10.1099/ijsem.0.003378).
+  Genomically, gastri is closer to kansasii subtypes 1-5 than subtype 6
+  (attenuatum) is.
+- Deggim-Messmer V, et al. (IMM Zurich) EBioMedicine 2016;9:228-237.
+  [doi:10.1016/j.ebiom.2016.06.016](https://doi.org/10.1016/j.ebiom.2016.06.016).
+  Methods: "SmartGene IDNS software and databases … were used for sequence
+  analysis" and "sequence analysis of hsp65 was used for M. kansasii/gastri
+  differentiation". 16S alone was reported as "M. kansasii/gastri". Whether
+  the lab still works this way, and SmartGene's own thresholds, were not
+  checked (not on PubMed).
+- Other markers that separate the two: rpoB PRA (Kim BJ 2001,
+  [doi:10.1128/JCM.39.6.2102-2109.2001](https://doi.org/10.1128/JCM.39.6.2102-2109.2001)),
+  tuf PRA (Shin 2009,
+  [doi:10.4014/jmb.0804.267](https://doi.org/10.4014/jmb.0804.267)), dnaA
+  (Mukai 2006,
+  [doi:10.1111/j.1574-6968.2005.00031.x](https://doi.org/10.1111/j.1574-6968.2005.00031.x)),
+  and the gastri-specific lipooligosaccharide LOS-III (Gilleron 1993, PMID
+  8428994).
+
+### Reads outside the complex
+
+With the NA rule, 22 of 127 hsp65 reads, 4 of 65 16S reads and 10 of 42
+hsp65+16S rows are NA (the same counts in the `_excluded` run). Most of those
+hsp65 reads are 0.19-0.44 from every reference, so they need a look at the
+chromatogram (or a BLAST) before they count as kansasii-complex hsp65.
+Unambiguous hsp65 calls in the `_excluded` run drop from 123 to 105 of 127.
 
 ## Reproducing
 

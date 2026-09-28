@@ -106,6 +106,13 @@ The table has one row per isolate (`probennummer`) per `locus` (`hsp65`,
    and **`unambiguous = margin > tolerance`**. So the second-closest species
    has to be further away than the references of either species are from
    each other.
+   **Outside the complex → NA.** `max_dist` is the largest distance between
+   any two reference sequences at that locus (hsp65 0.054, 16S 0.008,
+   hsp65+16S 0.018 with the full reference set). If `nearest_dist >
+   max_dist`, the read is further from every reference than any two members
+   of the complex are from each other (a contaminant, another genus' groEL,
+   or a bad read). `nearest_species`, `second_species` and `unambiguous` are
+   then NA, and the isolate gets no locus recommendation.
 5. **hsp65+16S.** Only isolates with both reads get this row. The two
    single-locus alignments are joined end to end, keeping only references
    that have both loci, and steps 3–4 are repeated.

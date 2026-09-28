@@ -18,7 +18,8 @@ re-extracted directly), and each isolate is classified as unambiguously
 nested in one species' cluster, or ambiguous, using the same DNA-barcoding
 gap logic as main1: the gap between the isolate's nearest and second-nearest
 species must exceed the larger within-species diversity of the two among
-the references.
+the references. Isolates further from every reference than the two most
+distant references are from each other are outside the complex and get NA.
 
 Run via submit_sanger_differentiation.sbatch (requires env_mlsa active and
 the mafft Singularity container pulled). Best run after main1, but falls
@@ -151,13 +152,25 @@ def max_intra_species(dist: pd.DataFrame, species_of: dict[str, str]) -> dict[st
     return result
 
 
+def max_reference_distance(dist: pd.DataFrame, species_of: dict[str, str]) -> float:
+    """Largest distance between any two reference sequences, i.e. how far apart
+    two members of the complex can be at this locus."""
+    refs = [n for n, sp in species_of.items() if sp in SPECIES and n in dist.index]
+    return float(dist.loc[refs, refs].max().max())
+
+
 def classify_isolate(isolate_name: str, dist: pd.DataFrame, species_of: dict[str, str],
-                      intra_max: dict[str, float]) -> dict | None:
+                      intra_max: dict[str, float], max_dist: float) -> dict | None:
     """Nearest and second-nearest species by the isolate's distance to each
     species' closest reference. The tolerance is the larger within-species
     diversity of the two species, as in main1's barcoding-gap check
     (mlsa.align.barcoding_gap_check). References whose distance is NaN (no
-    overlapping, gap-free columns with the isolate's read) are skipped."""
+    overlapping, gap-free columns with the isolate's read) are skipped.
+
+    An isolate whose nearest reference is further away than max_dist (the
+    largest distance between two references) is outside the complex (e.g. a
+    contaminant or another genus' groEL): its species columns and
+    `unambiguous` are NA."""
     per_species_min: dict[str, float] = {}
     for ref_name, sp in species_of.items():
         if sp not in SPECIES or ref_name not in dist.columns:
@@ -174,14 +187,16 @@ def classify_isolate(isolate_name: str, dist: pd.DataFrame, species_of: dict[str
     second_sp, second_d = ranked[1] if len(ranked) > 1 else (None, float("inf"))
     tolerance = max(intra_max.get(best_sp, 0.0), intra_max.get(second_sp, 0.0))
     margin = second_d - best_d
+    outside = best_d > max_dist
     return {
-        "nearest_species": best_sp,
+        "nearest_species": None if outside else best_sp,
         "nearest_dist": best_d,
-        "second_species": second_sp,
+        "second_species": None if outside else second_sp,
         "second_dist": second_d,
         "margin": margin,
         "tolerance": tolerance,
-        "unambiguous": bool(margin > tolerance),
+        "max_dist": max_dist,
+        "unambiguous": None if outside else bool(margin > tolerance),
     }
 
 
@@ -216,12 +231,15 @@ def run_locus_or_combo(label: str, combined_seqs: dict[str, str], species_of: di
 
     dist = p_distance_matrix(aligned)
     intra_max = max_intra_species(dist, species_of)
+    max_dist = max_reference_distance(dist, species_of)
+    log.info("%s: isolates further than %.4f from every reference are outside the complex (NA)",
+             label, max_dist)
 
     rows = []
     for name in isolate_names:
         if name not in aligned:
             continue
-        result = classify_isolate(name, dist, species_of, intra_max)
+        result = classify_isolate(name, dist, species_of, intra_max, max_dist)
         if result is None:
             continue
         result["probennummer"] = name.split("__", 1)[1]
@@ -306,15 +324,17 @@ def main(results_dir: Path = RESULTS, main1_results: Path = MAIN1_RESULTS,
     results_df = pd.concat(all_result_dfs, ignore_index=True) if all_result_dfs else pd.DataFrame()
     results_df.to_csv(results_dir / "isolate_classification.tsv", sep="\t", index=False)
 
-    summary_lines = ["Differentiation summary (unambiguous / total isolates):"]
+    summary_lines = ["Differentiation summary (unambiguous / total isolates; "
+                     "NA = further from every reference than the references are from each other):"]
     for label, df in [("hsp65", all_result_dfs[0]), ("16S", all_result_dfs[1]), ("hsp65+16S", df_both)]:
         if len(df):
-            summary_lines.append(f"  {label}: {df['unambiguous'].sum()} / {len(df)}")
+            summary_lines.append(f"  {label}: {df['unambiguous'].eq(True).sum()} / {len(df)} "
+                                 f"({df['unambiguous'].isna().sum()} NA)")
         else:
             summary_lines.append(f"  {label}: no data")
 
     if len(df_both):
-        ambiguous_both = df_both[~df_both["unambiguous"]]
+        ambiguous_both = df_both[df_both["unambiguous"].eq(False)]
         recs = recommend_loci(ambiguous_both, main1_results / "single_locus_pair_separation.tsv")
         if len(recs):
             recs.to_csv(results_dir / "recommended_additional_loci.tsv", sep="\t", index=False)
