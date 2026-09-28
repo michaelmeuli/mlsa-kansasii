@@ -32,3 +32,7 @@ classifies isolates. This file only lists what is easy to get wrong.
   pair-separation table.
 - **Species list and colors** are defined once in `mlsa/__init__.py`
   (`SPECIES`, `SPECIES_COLORS`). Reuse them; don't redefine them.
+- **immensekansasii pipeline runs** go in their own subdirectory of
+  `/shares/sander.imm.uzh/MM/kansasii/runs/<run_name>/`, never in `output/`. The Nextflow `work/`
+  directory is large and temporary; only the end results are copied to
+  `/shares/sander.imm.uzh/MM/kansasii/output/<run_name>/` (see README.md).

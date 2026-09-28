@@ -136,3 +136,22 @@ The TNR isolates will also be Illumina-sequenced and speciated with the
 [immensekansasii](https://gitlab.uzh.ch/appliedmicrobiologyresearch/immense.git)
 (`../immensekansasii`); this repo answers the same species-complex question
 computationally ahead of that NGS data being available.
+
+## Pipeline runs (immensekansasii)
+
+Start every run of the immensekansasii (IMMense) pipeline in its own
+subdirectory of `/shares/sander.imm.uzh/MM/kansasii/runs/`, not in `output/`.
+Nextflow writes its `work/` directory into the directory the run is started
+from. `work/` is large and only temporary, so it must not end up in
+`output/`, which gets downloaded to local `kansasii_C`. Once a run has
+finished and been checked, copy its end results to
+`/shares/sander.imm.uzh/MM/kansasii/output/<run_name>/` and delete `work/`.
+
+```bash
+mkdir -p /shares/sander.imm.uzh/MM/kansasii/runs/<run_name>
+cd /shares/sander.imm.uzh/MM/kansasii/runs/<run_name>
+bash /shares/sander.imm.uzh/MM/kansasii/repos/immensekansasii/run_IMMENSE.sh -j <job_name> -t <input_type> -r <run_name> -i <input_dir>
+
+# after the run: collect results (without work/) in output/
+rsync -a --exclude work --exclude .nextflow /shares/sander.imm.uzh/MM/kansasii/runs/<run_name>/ /shares/sander.imm.uzh/MM/kansasii/output/<run_name>/
+```
