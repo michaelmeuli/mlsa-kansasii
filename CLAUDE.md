@@ -23,6 +23,8 @@ classifies isolates. This file only lists what is easy to get wrong.
   (`SCREENING_MAP_TNR_COLUMNS`) are pooled per isolate. Output tables with a
   lowercase `tnr` column come from older code and are out of date. main2's
   uppercase `TNR` column is only the TNR of the read that was picked.
+  `screening_map_results.csv` (immensekansasii) flags reads whose TNR differs
+  from the isolate's `TNR` in `TNR_MLSA`.
 - **`*_excluded` variants** rerun main1/main2 without the 3 kansasii genomes
   GCF_002705785.1, GCF_002705825.1 and GCF_002705865.1. They call the base
   scripts with different parameters, so change the base script and not a
