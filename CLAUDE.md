@@ -39,3 +39,4 @@ classifies isolates. This file only lists what is easy to get wrong.
   `/shares/sander.imm.uzh/MM/kansasii/runs/<run_name>/`, never in `output/`. The Nextflow `work/`
   directory is large and temporary; only the end results are copied to
   `/shares/sander.imm.uzh/MM/kansasii/output/<run_name>/` (see README.md).
+- **`mlsa/refalign.py`** (main3) is copied to sanger-microsynth as `sanger_ms/refalign.py`; keep them in sync.

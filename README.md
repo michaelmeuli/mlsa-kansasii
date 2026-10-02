@@ -24,6 +24,10 @@ the lab's existing hsp65 + 16S Sanger data already get?
   hsp65/16S Sanger reads actually resolve species, and recommends which
   additional locus (from main1's candidates) would resolve the ambiguous
   ones.
+- `main3_reference_alignment/` — species ID of Sanger reads (`.ab1`/FASTA) by plain alignment to one
+  reference genome per species (`kansasii_complex_gtdb_representatives/`), no MLSA. One row per read in
+  `reference_alignment.tsv` plus a PDF per read (difference matrix + alignment with all 7 references).
+  Logic in `mlsa/refalign.py` (copied to sanger-microsynth).
 - `genome_identity_check/` — all-vs-all ANI (skani) between the reference
   genomes, to check whether genomes with atypical marker genes are really
   another species (see LIT.md).
@@ -57,6 +61,22 @@ To download all results to a Windows machine (PowerShell):
 New-Item -ItemType Directory -Path "$env:USERPROFILE\kansasii_C\downloads\" -Force
 scp -r mimeul@cluster.s3it.uzh.ch:/shares/sander.imm.uzh/MM/kansasii/output/* "$env:USERPROFILE\kansasii_C\downloads\"
 ```
+
+## Plain alignment to references vs MLSA
+
+`python main3_reference_alignment/run_reference_alignment.py <reads or dirs>` (about 3 s per read).
+Call = closest of the 7 representatives by differences over the read: `ok` (&ge;99% identity, &ge;2
+differences fewer than the next), `ambiguous`, `divergent` (&lt;99%, e.g. new lineage, introgressed
+locus, or bad read). Compared with main1/main2:
+
+- Plain alignment needs no locus extraction, no annotation and no tolerance estimate, works on any read,
+  and takes seconds. It also never sees the 72-genome diversity, so the 3 Korean *M. kansasii* genomes
+  (LIT.md) cannot disturb it. But that is blindness, not robustness: an isolate carrying their
+  persicum-like hsp65 would be called persicum, with the representatives giving no hint of the problem.
+- main2 (MLSA-style) measures within-species diversity from all references and so says when a call is
+  not supported (`unambiguous`), but is hsp65/16S-limited and needs main1's alignments.
+- Neither fixes a single-locus limit: hsp65 and 16S alone cannot separate every species (16S reads
+  tie between several references). More loci (gyrA, see main2 recommendations) or genome data are needed.
 
 ## How outputs are used downstream
 
