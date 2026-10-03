@@ -78,6 +78,50 @@ locus, or bad read). Compared with main1/main2:
 - Neither fixes a single-locus limit: hsp65 and 16S alone cannot separate every species (16S reads
   tie between several references). More loci (gyrA, see main2 recommendations) or genome data are needed.
 
+## References used by main3 (and in the lab's alignment PDFs)
+
+main3 aligns each read to one whole genome per species
+(`data/gtdb_genomes/Mycobacteriaceae/kansasii_complex_gtdb_representatives/`). The lab's own
+hsp65 alignment reports (`data/imm/2026500522_hsp65_Tb-11_alignment.pdf` and
+`..._alignment_comparison.pdf`, made with Apache FOP, not by this pipeline) use only three hsp65
+reference sequences (373 bp). Comparison:
+
+| Species | main3 reference (genome) | In the lab PDFs (hsp65 only) | Same strain? |
+|---|---|---|---|
+| kansasii | GCF_000157895.3, ATCC 12478 | ATCC 12478 | yes |
+| gastri | GCF_002102175.1, DSM 43505 | CIP_104530 | yes: CIP 104530 = DSM 43505 = ATCC 15754 = CCUG 20995 = JCM 12407, the type strain |
+| ostraviense | GCF_002705925.1, 241/15 (type strain, DSM 110538) | FDAARGOS_1613 | no, a different strain |
+| persicum | GCF_002086675.1, AFPC-000227 | not used | n/a |
+| pseudokansasii | GCF_900566075.1, MK142 | not used | n/a |
+| innocens | GCF_900566055.1, MK13 | not used | n/a |
+| attenuatum | GCF_900566085.1, MK41 | not used | n/a |
+
+The PDFs therefore only separate kansasii, gastri and ostraviense. They cannot give persicum,
+pseudokansasii, innocens or attenuatum, so a read from one of those is forced onto the nearest of
+the three. For 2026500522 the isolate differs from gastri at 7 positions, ostraviense 13 and
+kansasii 15 (98.12% identity to gastri at best), so the PDF call is not comparable with main3's.
+
+### Strains behind the two extra references
+
+- **CIP_104530** (*M. gastri*): the Institut Pasteur collection number of the species' type strain.
+  The same strain is DSM 43505 (the genome GCF_002102175.1 used by main3), ATCC 15754, CCUG 20995
+  and JCM 12407. It was isolated from gastric lavage. *M. gastri* shares an identical 16S rDNA
+  sequence with *M. kansasii*; hsp65 and ITS tell them apart. So the PDF's gastri and main3's
+  gastri are the same organism, just named by a different collection.
+- **FDAARGOS_1613** (*M. ostraviense*): a complete, circular chromosome (GenBank CP089224,
+  assembly GCA_021183725.1 / ASM2118372v1, 5,114 protein genes and 53 RNA genes, entered 2022)
+  from the FDA-ARGOS database of quality-controlled reference genomes for diagnostic use. It is
+  not the type strain (241/15, from sputum, Karviná, Czech Republic; Jagielski et al. 2019,
+  Front Microbiol). Submitter and exact origin were not checked; the NCBI assembly page did not
+  load. It is not among the genomes in this repo (no GCF accession is linked).
+  Being a different ostraviense strain, it may differ from 241/15 at a few hsp65 positions, so
+  the ostraviense distances in the PDF and in main3 are not directly comparable.
+
+Sources: [Mycobacterium gastri, type strain designations](https://lpsn.dsmz.de/species/mycobacterium-gastri),
+[DSM 43505](https://www.dsmz.de/collection/catalogue/details/culture/DSM-43505),
+[KEGG Mycobacterium ostraviense FDAARGOS_1613](https://www.kegg.jp/kegg-bin/show_organism?org=mot),
+[M. ostraviense DSM 110538](https://www.dsmz.de/collection/catalogue/details/culture/DSM-110538).
+
 ## How outputs are used downstream
 
 | Step | Produces | Used by |
