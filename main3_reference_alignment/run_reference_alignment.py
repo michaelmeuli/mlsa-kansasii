@@ -13,7 +13,7 @@ Usage:
 
 Writes to OUTPUT (default output/mlsa/main3_reference_alignment/):
   reference_alignment.tsv   one row per read (mixed_fraction: share of mixed peaks in .ab1 reads, informational)
-  <read>_ref_alignment.pdf  difference matrix + alignment of the read and all 7 references
+No PDFs: the per-read alignment PDF is made by sanger-microsynth (sanger_ms/refalign.py), which emails it.
 About 3 s per read on one core, so fine on the login node for a handful of reads; use a
 job for hundreds.
 """
@@ -30,7 +30,7 @@ import pandas as pd  # noqa: E402
 from Bio import SeqIO  # noqa: E402
 
 from mlsa import DATA_ROOT, GTDB_REPRESENTATIVES, SPECIES  # noqa: E402
-from mlsa.refalign import identify_read, load_references, write_pdf  # noqa: E402
+from mlsa.refalign import identify_read, load_references  # noqa: E402
 from mlsa.sanger_io import classify_locus, load_trimmed_ab1_mixed  # noqa: E402
 
 OUTPUT = DATA_ROOT.parent / "output" / "mlsa" / "main3_reference_alignment"
@@ -65,7 +65,6 @@ def main():
                     help="closest reference must be at least this identical to call (default 0.99)")
     ap.add_argument("--min-margin", type=int, default=2,
                     help="closest reference must have at least this many fewer differences than the next (default 2)")
-    ap.add_argument("--no-pdf", action="store_true")
     args = ap.parse_args()
 
     refs = load_references(args.ref_dir, SPECIES)
@@ -86,8 +85,6 @@ def main():
                            second_diffs=res.diffs[s], margin=res.diffs[s] - res.diffs[b])
             for i, h in enumerate(res.hits):
                 row[f"identity_{h.ref.species}"] = round(100 * res.identity(i), 2)
-            if not args.no_pdf:
-                row["pdf"] = write_pdf(res, args.out / f"{name.replace(' ', '_')}_ref_alignment.pdf").name
         print(f"{name}: {res.status}, closest {res.closest_species}"
               + (f" {row['closest_identity']}% ({row['closest_diffs']} diffs)" if res.hits else ""), flush=True)
         rows.append(row)

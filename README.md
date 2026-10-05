@@ -26,7 +26,7 @@ the lab's existing hsp65 + 16S Sanger data already get?
   ones.
 - `main3_reference_alignment/` — species ID of Sanger reads (`.ab1`/FASTA) by plain alignment to one
   reference genome per species (`kansasii_complex_gtdb_representatives/`), no MLSA. One row per read in
-  `reference_alignment.tsv` plus a PDF per read (difference matrix + alignment with all 7 references).
+  `reference_alignment.tsv` (no PDFs: sanger-microsynth makes and emails the per-read alignment PDF).
   Logic in `mlsa/refalign.py` (copied to sanger-microsynth).
 - `genome_identity_check/` — all-vs-all ANI (skani) between the reference
   genomes, to check whether genomes with atypical marker genes are really
