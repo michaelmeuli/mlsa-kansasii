@@ -12,7 +12,7 @@ Usage:
   READ = .ab1 trace (quality-trimmed here), .fasta/.fa read (used as is), or a directory of those.
 
 Writes to OUTPUT (default output/mlsa/main3_reference_alignment/):
-  reference_alignment.tsv   one row per read
+  reference_alignment.tsv   one row per read (mixed_fraction: share of mixed peaks in .ab1 reads, informational)
   <read>_ref_alignment.pdf  difference matrix + alignment of the read and all 7 references
 About 3 s per read on one core, so fine on the login node for a handful of reads; use a
 job for hundreds.
@@ -31,27 +31,29 @@ from Bio import SeqIO  # noqa: E402
 
 from mlsa import DATA_ROOT, GTDB_REPRESENTATIVES, SPECIES  # noqa: E402
 from mlsa.refalign import identify_read, load_references, write_pdf  # noqa: E402
-from mlsa.sanger_io import classify_locus, load_trimmed_ab1  # noqa: E402
+from mlsa.sanger_io import classify_locus, load_trimmed_ab1_mixed  # noqa: E402
 
 OUTPUT = DATA_ROOT.parent / "output" / "mlsa" / "main3_reference_alignment"
 
 
 def iter_reads(paths: list[Path]):
-    """Yield (name, locus, sequence); .ab1 reads are Mott-trimmed, reads < 100 bp are skipped."""
+    """Yield (name, locus, sequence, mixed_fraction); .ab1 reads are Mott-trimmed, reads < 100 bp are
+    skipped. mixed_fraction (share of base calls with a secondary peak >= 25% of the primary one) is
+    None for .fasta/.fa reads and for traces without peak data."""
     files = []
     for p in paths:
         files += sorted(f for f in p.rglob("*") if f.suffix in {".ab1", ".fasta", ".fa"}) if p.is_dir() else [p]
     for f in files:
         locus = classify_locus(f.name)
         if f.suffix == ".ab1":
-            r = load_trimmed_ab1(f)
+            r = load_trimmed_ab1_mixed(f)
             if r is None:
                 print(f"skipped (unparsable, no qualities or < 100 bp after trimming): {f.name}")
                 continue
-            yield f.stem, locus, r[0].upper()
+            yield f.stem, locus, r[0].upper(), r[2]
         else:
             for rec in SeqIO.parse(f, "fasta"):
-                yield rec.id, locus, str(rec.seq).upper()
+                yield rec.id, locus, str(rec.seq).upper(), None
 
 
 def main():
@@ -70,9 +72,10 @@ def main():
     print(f"{len(refs)} references: " + ", ".join(f"{r.species} ({r.accession})" for r in refs))
     args.out.mkdir(parents=True, exist_ok=True)
     rows = []
-    for name, locus, seq in iter_reads(args.reads):
+    for name, locus, seq, mixed in iter_reads(args.reads):
         res = identify_read(refs, name, locus, seq, args.min_identity, args.min_margin)
-        row = {"read": name, "locus": locus, "read_bp": len(seq), "status": res.status,
+        row = {"read": name, "locus": locus, "read_bp": len(seq),
+               "mixed_fraction": None if mixed is None else round(mixed, 4), "status": res.status,
                "closest_species": res.closest_species}
         if res.hits:
             b, s = res.best, res.runner_up

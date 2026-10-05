@@ -57,7 +57,7 @@ from mlsa.align import (  # noqa: E402
 )
 from mlsa.loci import discover_genomes, extract_16s, extract_hsp65  # noqa: E402
 from mlsa.plotting import plot_alignment_heatmap, plot_tree  # noqa: E402
-from mlsa.sanger_io import classify_locus, extract_tnr, load_trimmed_ab1  # noqa: E402
+from mlsa.sanger_io import classify_locus, extract_tnr, load_trimmed_ab1_mixed  # noqa: E402
 
 RESULTS = Path("/shares/sander.imm.uzh/MM/kansasii/output") / "mlsa" / "main2_sanger_differentiation"
 MAIN1_RESULTS = Path("/shares/sander.imm.uzh/MM/kansasii/output") / "mlsa" / "main1_locus_discovery"
@@ -120,20 +120,23 @@ def pick_representative(paths: list[Path], refs: dict[str, str],
     ref_example = next(iter(refs.values()))
     candidates = []
     for path in paths:
-        trimmed = load_trimmed_ab1(path)
+        trimmed = load_trimmed_ab1_mixed(path)
         if trimmed is None:
             continue
-        seq, mean_q = trimmed
+        seq, mean_q, mixed = trimmed
         seq = orient_to_reference(seq, ref_example)
         nearest = min(pairwise_p_distance(seq, ref) for ref in refs.values())
-        candidates.append({"seq": seq, "mean_q": mean_q, "path": path, "screen_dist": nearest})
+        candidates.append({"seq": seq, "mean_q": mean_q, "path": path, "screen_dist": nearest,
+                           "mixed_fraction": mixed})
     if not candidates:
         return None
     candidates.sort(key=lambda c: (len(c["seq"]), c["mean_q"]), reverse=True)
     inside = [c for c in candidates if c["screen_dist"] <= max_dist]
     chosen = inside[0] if inside else candidates[0]
+    mixed_all = [c["mixed_fraction"] for c in candidates if c["mixed_fraction"] is not None]
     return {**chosen, "n_reads": len(paths), "n_usable": len(candidates),
-            "n_inside": len(inside), "longest_rejected": chosen is not candidates[0]}
+            "n_inside": len(inside), "longest_rejected": chosen is not candidates[0],
+            "max_mixed_fraction": max(mixed_all) if mixed_all else None}
 
 
 def load_reference_sequences(locus: str, main1_results: Path = MAIN1_RESULTS,
@@ -319,6 +322,10 @@ def main(results_dir: Path = RESULTS, main1_results: Path = MAIN1_RESULTS,
                 "screen_dist": rep["screen_dist"], "max_dist": max_ref_dist,
                 "n_reads": rep["n_reads"], "n_usable": rep["n_usable"], "n_inside": rep["n_inside"],
                 "longest_rejected": rep["longest_rejected"],
+                # share of base calls with a secondary peak >= 25% of the primary one
+                # (chosen read / worst usable read); informational, no threshold applied
+                "mixed_fraction": None if rep["mixed_fraction"] is None else round(rep["mixed_fraction"], 4),
+                "max_mixed_fraction": None if rep["max_mixed_fraction"] is None else round(rep["max_mixed_fraction"], 4),
             })
         log.info("%s: %d isolates with a usable representative read, %d with none (of %d isolates seen); "
                   "%d use a shorter read because the longest was outside the complex",

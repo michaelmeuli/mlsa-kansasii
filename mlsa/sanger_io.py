@@ -83,12 +83,36 @@ def mott_trim(qualities: list[int], error_threshold: float = 0.05) -> tuple[int,
     return best_start, best_end
 
 
-def load_trimmed_ab1(path: Path, min_length: int = 100) -> tuple[str, float] | None:
-    """Parse an .ab1 trace and quality-trim it. Returns (trimmed_sequence,
-    mean_post_trim_phred_quality), or None if the trimmed region is shorter
-    than min_length (unusable read), the trace has no quality track, or the
-    file can't be parsed at all (some of these traces are 20 years old and a
-    handful are truncated/corrupted; skip rather than abort the whole run)."""
+def mixed_peak_fraction(record, start: int, end: int, min_ratio: float = 0.25) -> float | None:
+    """Fraction of base calls in [start, end) whose second-highest trace channel
+    reaches min_ratio of the highest one at the base-call position (PLOC2). A
+    second template in the PCR (mixed culture, cross-contamination) shows as
+    such secondary peaks, which the instrument writes as Y/K/M/R/S/W or N. None
+    if the trace lacks the channels or call positions."""
+    raw = record.annotations.get("abif_raw", {})
+    order = raw.get("FWO_1")
+    locs = raw.get("PLOC2")
+    if order is None or locs is None:
+        return None
+    if isinstance(order, bytes):
+        order = order.decode()
+    try:
+        channels = {base: raw[f"DATA{i}"] for base, i in zip(order, (9, 10, 11, 12))}
+    except KeyError:
+        return None
+    n_mixed = 0
+    for i in range(start, end):
+        pos = min(locs[i], len(channels["A"]) - 1)
+        top, second = sorted((channels[b][pos] for b in "ACGT"), reverse=True)[:2]
+        n_mixed += top > 0 and second / top >= min_ratio
+    return n_mixed / (end - start)
+
+
+def load_trimmed_ab1_mixed(path: Path, min_length: int = 100) -> tuple[str, float, float | None] | None:
+    """Like load_trimmed_ab1 but returns (trimmed_sequence, mean_quality,
+    mixed_fraction); mixed_fraction is mixed_peak_fraction over the trimmed
+    region (None when the trace has no peak data). None under the same
+    conditions as load_trimmed_ab1."""
     try:
         record = SeqIO.read(path, "abi")
     except Exception:
@@ -101,4 +125,14 @@ def load_trimmed_ab1(path: Path, min_length: int = 100) -> tuple[str, float] | N
         return None
     seq = str(record.seq[start:end])
     mean_q = sum(qualities[start:end]) / (end - start)
-    return seq, mean_q
+    return seq, mean_q, mixed_peak_fraction(record, start, end)
+
+
+def load_trimmed_ab1(path: Path, min_length: int = 100) -> tuple[str, float] | None:
+    """Parse an .ab1 trace and quality-trim it. Returns (trimmed_sequence,
+    mean_post_trim_phred_quality), or None if the trimmed region is shorter
+    than min_length (unusable read), the trace has no quality track, or the
+    file can't be parsed at all (some of these traces are 20 years old and a
+    handful are truncated/corrupted; skip rather than abort the whole run)."""
+    loaded = load_trimmed_ab1_mixed(path, min_length)
+    return None if loaded is None else loaded[:2]

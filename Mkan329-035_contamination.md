@@ -61,6 +61,16 @@ Reading this:
   ostraviense call depends on that read. The two later reads are too noisy to call.
 - The 10ul read has no Q>=20 bases at all.
 
+## Can mixed bases alone exclude an isolate from Sanger identification?
+
+Not by a fixed threshold. `mlsa/sanger_io.py` now has `mixed_peak_fraction` (share of base calls in the
+Mott-trimmed read whose second peak is at least 25% of the primary one), and main2 writes `mixed_fraction` (chosen read)
+and `max_mixed_fraction` (worst usable read) to `representative_reads.tsv`. No flag is applied. For Mkan329-035 the
+best hsp65 read has 2.1% (second read 5.3%, 16S 0.1%), because the two noisiest reads are trimmed below 100 bp and never reach main2.
+Across all 252 hsp65 reads in `data/sanger/seq_kansasii` the median is 1.6%, 25% of reads are at or above 5% and 10% are at or above 18%,
+so the isolate looks ordinary by this measure. The CheckM `contamination_flag` (and the read mapping above) are
+the exclusion signal. The GWAS table already excludes NR 35 (`kansasii-gwas/scripts/01_build_table.py`).
+
 ## Ways to detect contamination in Sanger data
 
 1. **Secondary peaks in the trace.** A contaminant at 10-50% gives a second peak at the same positions
