@@ -38,7 +38,8 @@ class GenomeRecord:
     fna_path: Path
     gff_path: Path
     _contigs_cache: dict[str, str] | None = field(default=None, repr=False, compare=False)
-    _features_cache: list[tuple] | None = field(default=None, repr=False, compare=False)
+    _features_cache: list[tuple[str, str, str, int, int, str, dict[str, str]]] | None = field(
+        default=None, repr=False, compare=False)
 
     def contigs(self) -> dict[str, str]:
         # Every candidate locus is extracted separately for every genome, so
@@ -48,7 +49,7 @@ class GenomeRecord:
             self._contigs_cache = {rec.id: str(rec.seq) for rec in SeqIO.parse(self.fna_path, "fasta")}
         return self._contigs_cache
 
-    def gff_features(self) -> Iterator[tuple[str, str, str, int, int, str, dict]]:
+    def gff_features(self) -> Iterator[tuple[str, str, str, int, int, str, dict[str, str]]]:
         """Yield (seqid, source, ftype, start, end, strand, attrs) for every
         9-column feature line in the GFF."""
         if self._features_cache is None:
@@ -96,7 +97,7 @@ def extract_gene_by_symbol(genome: GenomeRecord, gene_symbols: list[str]) -> str
     (shouldn't happen for the symbols in GENE_SYMBOL_LOCI, but genomes are
     inconsistently annotated), the longest is kept."""
     wanted = {g.lower() for g in gene_symbols}
-    hits = []
+    hits: list[tuple[str, int, int, str]] = []
     for seqid, source, ftype, start, end, strand, attrs in genome.gff_features():
         if ftype != "gene" or attrs.get("partial") == "true":
             continue

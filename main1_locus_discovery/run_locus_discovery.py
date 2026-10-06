@@ -44,7 +44,7 @@ from mlsa.align import (  # noqa: E402
     species_sort_key,
     write_fasta,
 )
-from mlsa.loci import CANDIDATE_LOCI, discover_genomes, extract_all_loci  # noqa: E402
+from mlsa.loci import CANDIDATE_LOCI, GenomeRecord, discover_genomes, extract_all_loci  # noqa: E402
 from mlsa.plotting import plot_alignment_heatmap, plot_tree  # noqa: E402
 
 RESULTS = Path("/shares/sander.imm.uzh/MM/kansasii/output") / "mlsa" / "main1_locus_discovery"
@@ -54,11 +54,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 log = logging.getLogger("locus_discovery")
 
 
-def genome_name(genome) -> str:
+def genome_name(genome: GenomeRecord) -> str:
     return f"{genome.species}__{genome.accession}"
 
 
-def extract_loci_for_all_genomes(genomes) -> dict[str, dict[str, str]]:
+def extract_loci_for_all_genomes(genomes: list[GenomeRecord]) -> dict[str, dict[str, str]]:
     """locus -> {genome_name: raw (unaligned) sequence}, skipping genomes
     where extraction failed for that locus."""
     per_locus: dict[str, dict[str, str]] = {locus: {} for locus in CANDIDATE_LOCI}
