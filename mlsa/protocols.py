@@ -16,12 +16,13 @@ reads regardless of exactly which primers were used for a given read.
 """
 from __future__ import annotations
 
+import os
 import re
 import zipfile
 from pathlib import Path
 
 HSP65_PROTOCOL = Path(
-    "/shares/sander.imm.uzh/MM/kansasii/data/protocols/"
+    os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii") + "/data/protocols/"
     "32.43505-4-Mykobakterien NTM 65kDa.docx"
 )
 

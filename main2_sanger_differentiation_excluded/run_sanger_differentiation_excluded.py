@@ -11,6 +11,7 @@ main1_locus_discovery_excluded.
 """
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -20,7 +21,7 @@ sys.path.insert(0, str(REPO_ROOT / "main2_sanger_differentiation"))
 import run_sanger_differentiation  # noqa: E402
 
 EXCLUDED_ACCESSIONS = ("GCF_002705785.1", "GCF_002705825.1", "GCF_002705865.1")
-OUTPUT = Path("/shares/sander.imm.uzh/MM/kansasii/output") / "mlsa"
+OUTPUT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii") + "/output") / "mlsa"
 
 if __name__ == "__main__":
     run_sanger_differentiation.main(

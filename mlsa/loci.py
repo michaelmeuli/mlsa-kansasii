@@ -58,7 +58,7 @@ class GenomeRecord:
         9-column feature line in the GFF."""
         if self._features_cache is None:
             features = []
-            with open(self.gff_path) as fh:
+            with open(self.gff_path, encoding="utf-8") as fh:
                 for line in fh:
                     if line.startswith("#"):
                         continue

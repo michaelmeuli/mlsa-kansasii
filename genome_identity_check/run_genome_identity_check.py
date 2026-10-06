@@ -35,7 +35,7 @@ from mlsa import GTDB_MLSA_ROOT, SPECIES  # noqa: E402
 from mlsa.align import run_skani_triangle, skani_version  # noqa: E402
 from mlsa.loci import discover_genomes  # noqa: E402
 
-RESULTS = Path("/shares/sander.imm.uzh/MM/kansasii/output") / "mlsa" / "genome_identity_check"
+RESULTS = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii") + "/output") / "mlsa" / "genome_identity_check"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("genome_identity_check")
@@ -75,12 +75,12 @@ def main(results_dir: Path = RESULTS) -> None:
     results_dir.mkdir(parents=True, exist_ok=True)
     genomes = discover_genomes(GTDB_MLSA_ROOT, SPECIES)
     genome_list = results_dir / "genomes.txt"
-    genome_list.write_text("".join(f"{p}\n" for p in sorted(str(g.fna_path) for g in genomes)))
+    genome_list.write_text("".join(f"{p}\n" for p in sorted(str(g.fna_path) for g in genomes)), encoding="utf-8", newline="\n")
     log.info("Running skani on %d genomes", len(genomes))
 
     threads = int(os.environ.get("SLURM_CPUS_PER_TASK", "8"))
     raw_tsv = run_skani_triangle(genome_list, results_dir / "skani_ani.tsv", threads)
-    (results_dir / "skani_version.txt").write_text(skani_version() + "\n")
+    (results_dir / "skani_version.txt").write_text(skani_version() + "\n", encoding="utf-8", newline="\n")
 
     raw = pd.read_csv(raw_tsv, sep="\t")
     n_expected = len(genomes) * (len(genomes) - 1) // 2

@@ -8,6 +8,7 @@ written to output/mlsa/main1_locus_discovery_excluded instead.
 """
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -18,7 +19,7 @@ import run_locus_discovery  # noqa: E402
 
 EXCLUDED_ACCESSIONS = ("GCF_002705785.1", "GCF_002705825.1", "GCF_002705865.1")
 RESULTS_EXCLUDED = (
-    Path("/shares/sander.imm.uzh/MM/kansasii/output") / "mlsa" / "main1_locus_discovery_excluded"
+    Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii") + "/output") / "mlsa" / "main1_locus_discovery_excluded"
 )
 
 if __name__ == "__main__":

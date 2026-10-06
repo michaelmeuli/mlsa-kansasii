@@ -28,6 +28,7 @@ back to extracting reference sequences itself if main1's output is missing.
 """
 from __future__ import annotations
 
+import os
 import csv
 import logging
 import sys
@@ -59,8 +60,8 @@ from mlsa.loci import discover_genomes, extract_16s, extract_hsp65  # noqa: E402
 from mlsa.plotting import plot_alignment_heatmap, plot_tree  # noqa: E402
 from mlsa.sanger_io import classify_locus, extract_tnr, load_trimmed_ab1_mixed  # noqa: E402
 
-RESULTS = Path("/shares/sander.imm.uzh/MM/kansasii/output") / "mlsa" / "main2_sanger_differentiation"
-MAIN1_RESULTS = Path("/shares/sander.imm.uzh/MM/kansasii/output") / "mlsa" / "main1_locus_discovery"
+RESULTS = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii") + "/output") / "mlsa" / "main2_sanger_differentiation"
+MAIN1_RESULTS = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii") + "/output") / "mlsa" / "main1_locus_discovery"
 LOCI = ["hsp65", "16S"]
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -71,7 +72,7 @@ def load_tnr_to_probennummer() -> dict[str, str]:
     """Map every TNR in any of SCREENING_MAP_TNR_COLUMNS to its row's
     PROBENNUMMER. Reference strains have no TNR and are skipped."""
     tnr_to_pnr: dict[str, str] = {}
-    with open(SCREENING_MAP) as fh:
+    with open(SCREENING_MAP, encoding="utf-8") as fh:
         for row in csv.DictReader(fh):
             for col in SCREENING_MAP_TNR_COLUMNS:
                 tnr = row[col]
@@ -401,7 +402,7 @@ def main(results_dir: Path = RESULTS, main1_results: Path = MAIN1_RESULTS,
     log.info("\n%s", summary_text)
     if exclude_accessions:
         summary_text += "\n\nReference genomes excluded: " + ", ".join(sorted(exclude_accessions))
-    with open(results_dir / "SUMMARY.txt", "w") as fh:
+    with open(results_dir / "SUMMARY.txt", "w", encoding="utf-8", newline="\n") as fh:
         fh.write(summary_text + "\n")
 
 

@@ -22,6 +22,7 @@ active and the mafft/iqtree Singularity containers pulled).
 """
 from __future__ import annotations
 
+import os
 import itertools
 import logging
 import sys
@@ -47,7 +48,7 @@ from mlsa.align import (  # noqa: E402
 from mlsa.loci import CANDIDATE_LOCI, GenomeRecord, discover_genomes, extract_all_loci  # noqa: E402
 from mlsa.plotting import plot_alignment_heatmap, plot_tree  # noqa: E402
 
-RESULTS = Path("/shares/sander.imm.uzh/MM/kansasii/output") / "mlsa" / "main1_locus_discovery"
+RESULTS = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii") + "/output") / "mlsa" / "main1_locus_discovery"
 MAX_EXHAUSTIVE_SIZE = 4
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -249,7 +250,7 @@ def main(results_dir: Path = RESULTS, exclude_accessions: Iterable[str] = ()) ->
     plot_tree(treefile, species_of, figures_dir / f"tree_{combo_label}",
               f"Maximum-likelihood tree — {combo_label}")
 
-    with open(results_dir / "SUMMARY.txt", "w") as fh:
+    with open(results_dir / "SUMMARY.txt", "w", encoding="utf-8", newline="\n") as fh:
         fh.write(f"Minimal locus set fully separating all 7 species: {combo_label}\n")
         fh.write(f"Genomes used: {len(concat)} / {len(genomes)}\n")
         if exclude_accessions:
