@@ -32,7 +32,7 @@ import csv
 import logging
 import sys
 from collections import defaultdict
-from typing import Iterable
+from typing import Any, Iterable, cast
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -109,7 +109,7 @@ def reference_max_distance(refs: dict[str, str], prefix: Path) -> float:
 
 
 def pick_representative(paths: list[Path], refs: dict[str, str],
-                        max_dist: float) -> dict | None:
+                        max_dist: float) -> dict[str, Any] | None:
     """Quality-trim every candidate read for a (probennummer, locus), orient it
     against the references and find its distance to the nearest reference
     (pairwise local alignment). Keep the longest read (ties broken by mean
@@ -118,7 +118,7 @@ def pick_representative(paths: list[Path], refs: dict[str, str],
     reported as NA later. This way a failed first read (contaminant, mixed
     culture) doesn't hide a good repeat or re-extraction."""
     ref_example = next(iter(refs.values()))
-    candidates = []
+    candidates: list[dict[str, Any]] = []
     for path in paths:
         trimmed = load_trimmed_ab1_mixed(path)
         if trimmed is None:
@@ -170,12 +170,12 @@ def max_intra_species(dist: pd.DataFrame, species_of: dict[str, str]) -> dict[st
     for name, sp in species_of.items():
         if sp in SPECIES and name in dist.index:
             by_species[sp].append(name)
-    result = {}
+    result: dict[str, float] = {}
     for sp, names in by_species.items():
         if len(names) < 2:
             result[sp] = 0.0
             continue
-        result[sp] = max(dist.loc[a, b] for i, a in enumerate(names) for b in names[i + 1:])
+        result[sp] = max(cast(float, dist.loc[a, b]) for i, a in enumerate(names) for b in names[i + 1:])
     return result
 
 
@@ -187,7 +187,7 @@ def max_reference_distance(dist: pd.DataFrame, species_of: dict[str, str]) -> fl
 
 
 def classify_isolate(isolate_name: str, dist: pd.DataFrame, species_of: dict[str, str],
-                      intra_max: dict[str, float], max_dist: float) -> dict | None:
+                      intra_max: dict[str, float], max_dist: float) -> dict[str, Any] | None:
     """Nearest and second-nearest species by the isolate's distance to each
     species' closest reference. The tolerance is the larger within-species
     diversity of the two species, as in main1's barcoding-gap check
@@ -202,7 +202,7 @@ def classify_isolate(isolate_name: str, dist: pd.DataFrame, species_of: dict[str
     for ref_name, sp in species_of.items():
         if sp not in SPECIES or ref_name not in dist.columns:
             continue
-        d = dist.loc[isolate_name, ref_name]
+        d = cast(float, dist.loc[isolate_name, ref_name])
         if pd.isna(d):
             continue
         per_species_min[sp] = min(per_species_min.get(sp, float("inf")), d)
@@ -212,7 +212,7 @@ def classify_isolate(isolate_name: str, dist: pd.DataFrame, species_of: dict[str
     ranked = sorted(per_species_min.items(), key=lambda kv: kv[1])
     best_sp, best_d = ranked[0]
     second_sp, second_d = ranked[1] if len(ranked) > 1 else (None, float("inf"))
-    tolerance = max(intra_max.get(best_sp, 0.0), intra_max.get(second_sp, 0.0))
+    tolerance = max(intra_max.get(best_sp, 0.0), intra_max.get(second_sp, 0.0) if second_sp is not None else 0.0)
     margin = second_d - best_d
     outside = best_d > max_dist
     return {
@@ -369,7 +369,7 @@ def main(results_dir: Path = RESULTS, main1_results: Path = MAIN1_RESULTS,
     if len(results_df):
         # TNR of the read that was finally picked. hsp65+16S joins the two
         # loci's TNRs (hsp65 first) when they come from different TNRs.
-        def tnr_of(row) -> str:
+        def tnr_of(row: pd.Series[Any]) -> str:
             loci = row["locus"].split("+")
             tnrs = [picked_tnr[(locus, row["probennummer"])] for locus in loci]
             return ",".join(dict.fromkeys(tnrs))
@@ -394,8 +394,8 @@ def main(results_dir: Path = RESULTS, main1_results: Path = MAIN1_RESULTS,
             summary_lines.append("")
             summary_lines.append("Most commonly recommended additional locus for isolates still "
                                   "ambiguous with hsp65+16S:")
-            for locus, n in top.items():
-                summary_lines.append(f"  {locus}: {n} isolate(s)")
+            for rec_locus, n in top.items():
+                summary_lines.append(f"  {rec_locus}: {n} isolate(s)")
 
     summary_text = "\n".join(summary_lines)
     log.info("\n%s", summary_text)

@@ -26,7 +26,7 @@ import itertools
 import logging
 import sys
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
@@ -107,11 +107,11 @@ def concat_combo(aligned: dict[str, dict[str, str]], combo: tuple[str, ...]) -> 
 
 
 def evaluate_combo(aligned: dict[str, dict[str, str]], combo: tuple[str, ...],
-                    species_of: dict[str, str]) -> dict:
+                    species_of: dict[str, str]) -> dict[str, Any]:
     concat = concat_combo(aligned, combo)
     species_present = {species_of[n] for n in concat}
     missing_species = set(SPECIES) - species_present
-    result = {
+    result: dict[str, Any] = {
         "loci": "+".join(combo),
         "size": len(combo),
         "n_genomes": len(concat),
@@ -155,11 +155,11 @@ def write_single_locus_pair_table(aligned: dict[str, dict[str, str]], usable_loc
 
 
 def search_minimal_combo(aligned: dict[str, dict[str, str]], usable_loci: list[str],
-                          species_of: dict[str, str]) -> tuple[list[dict], list[str] | None]:
-    all_results = []
+                          species_of: dict[str, str]) -> tuple[list[dict[str, Any]], list[str] | None]:
+    all_results: list[dict[str, Any]] = []
     max_size = min(MAX_EXHAUSTIVE_SIZE, len(usable_loci))
     for size in range(1, max_size + 1):
-        size_results = []
+        size_results: list[dict[str, Any]] = []
         for combo in itertools.combinations(sorted(usable_loci), size):
             res = evaluate_combo(aligned, combo, species_of)
             size_results.append(res)
@@ -174,9 +174,9 @@ def search_minimal_combo(aligned: dict[str, dict[str, str]], usable_loci: list[s
     log.info("No combination up to size %d resolves all species; falling back to greedy selection", max_size)
     chosen: list[str] = []
     remaining = list(usable_loci)
-    best_result = None
+    best_result: dict[str, Any] = {"n_pairs_separated": 0, "n_pairs_total": 0}
     while remaining:
-        candidates = []
+        candidates: list[tuple[dict[str, Any], str]] = []
         for locus in remaining:
             combo = tuple(sorted(chosen + [locus]))
             res = evaluate_combo(aligned, combo, species_of)

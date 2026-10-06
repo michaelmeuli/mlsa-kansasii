@@ -97,7 +97,7 @@ def plot_tree(treefile: Path, species_of: dict[str, str], out_prefix: Path, titl
     matplotlib-backed Phylo.draw (avoids the heavier ete3/Qt dependency)."""
     from Bio import Phylo
 
-    tree = Phylo.read(str(treefile), "newick")
+    tree = Phylo.read(str(treefile), "newick")  # type: ignore[attr-defined,no-untyped-call]  # Bio.Phylo lacks __all__
     n_tips = tree.count_terminals()
     fig_h = max(3.0, 0.28 * n_tips + 1.5)
     fig, ax = plt.subplots(figsize=(8.0, fig_h))
@@ -105,7 +105,7 @@ def plot_tree(treefile: Path, species_of: dict[str, str], out_prefix: Path, titl
     def label_colors(name: str) -> str:
         return SPECIES_COLORS.get(species_of.get(name, ""), "black")
 
-    Phylo.draw(tree, axes=ax, do_show=False, label_colors=label_colors)
+    Phylo.draw(tree, axes=ax, do_show=False, label_colors=label_colors)  # type: ignore[attr-defined,no-untyped-call]
     ax.set_title(title)
     fig.tight_layout()
     out_prefix.parent.mkdir(parents=True, exist_ok=True)

@@ -5,12 +5,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable, Iterator
+from typing import TYPE_CHECKING, Iterable, Iterator
 
 from Bio import SeqIO
 from Bio.Seq import Seq
 
 from .protocols import get_hsp65_primers
+
+if TYPE_CHECKING:
+    import numpy as np
+    import numpy.typing as npt
 
 # Genes extracted unambiguously by their GFF gene= symbol (single copy,
 # confirmed on the GCF_000157895.3 type-strain annotation as gene=secA and
@@ -177,7 +181,7 @@ def _select_16s(genome: GenomeRecord) -> tuple[str, int, int, str, str] | None:
         return None
     ref = _type_strain_16s_kmers()
 
-    def shared(copy):
+    def shared(copy: tuple[str, int, int, str, str]) -> float:
         km = _kmers(copy[4])
         return len(km & ref) / len(km) if km else 0.0
 
@@ -230,7 +234,7 @@ _IUPAC_EXPAND = {
 }
 
 
-def _seq_to_codes(seq: str) -> "np.ndarray":
+def _seq_to_codes(seq: str) -> npt.NDArray[np.int8]:
     import numpy as np
     arr = np.frombuffer(seq.upper().encode("ascii", errors="replace"), dtype=np.uint8)
     codes = np.full(arr.shape, -1, dtype=np.int8)
@@ -267,7 +271,8 @@ def find_primer_sites(seq: str, primer: str, max_mismatches: int) -> list[int]:
     for base_code in range(4):
         matches |= (windows == base_code) & allowed[:, base_code][None, :]
     mismatches = L - matches.sum(axis=1)
-    return np.where(mismatches <= max_mismatches)[0].tolist()
+    hit_starts: list[int] = np.where(mismatches <= max_mismatches)[0].tolist()
+    return hit_starts
 
 
 def in_silico_pcr(contigs: dict[str, str], fwd_primer: str, rev_primer_options: list[str],

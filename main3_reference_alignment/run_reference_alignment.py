@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -36,11 +37,11 @@ from mlsa.sanger_io import classify_locus, load_trimmed_ab1_mixed  # noqa: E402
 OUTPUT = DATA_ROOT.parent / "output" / "mlsa" / "main3_reference_alignment"
 
 
-def iter_reads(paths: list[Path]):
+def iter_reads(paths: list[Path]) -> Iterator[tuple[str, str | None, str, float | None]]:
     """Yield (name, locus, sequence, mixed_fraction); .ab1 reads are Mott-trimmed, reads < 100 bp are
     skipped. mixed_fraction (share of base calls with a secondary peak >= 25% of the primary one) is
     None for .fasta/.fa reads and for traces without peak data."""
-    files = []
+    files: list[Path] = []
     for p in paths:
         files += sorted(f for f in p.rglob("*") if f.suffix in {".ab1", ".fasta", ".fa"}) if p.is_dir() else [p]
     for f in files:
@@ -56,7 +57,7 @@ def iter_reads(paths: list[Path]):
                 yield rec.id, locus, str(rec.seq).upper(), None
 
 
-def main():
+def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("reads", nargs="+", type=Path)
     ap.add_argument("--ref-dir", type=Path, default=GTDB_REPRESENTATIVES)
@@ -70,14 +71,14 @@ def main():
     refs = load_references(args.ref_dir, SPECIES)
     print(f"{len(refs)} references: " + ", ".join(f"{r.species} ({r.accession})" for r in refs))
     args.out.mkdir(parents=True, exist_ok=True)
-    rows = []
+    rows: list[dict[str, str | int | float | None]] = []
     for name, locus, seq, mixed in iter_reads(args.reads):
         res = identify_read(refs, name, locus, seq, args.min_identity, args.min_margin)
         row = {"read": name, "locus": locus, "read_bp": len(seq),
                "mixed_fraction": None if mixed is None else round(mixed, 4), "status": res.status,
                "closest_species": res.closest_species}
-        if res.hits:
-            b, s = res.best, res.runner_up
+        b, s = res.best, res.runner_up
+        if b is not None:
             row.update(closest_accession=res.hits[b].ref.accession, closest_identity=round(100 * res.identity(b), 2),
                        closest_diffs=res.diffs[b], compared_bp=res.compared[b])
             if s is not None:

@@ -1,0 +1,16 @@
+# Type-checking config only (this repo is not packaged).
+# Run: mypy   (from the repo root, in an env with mypy + pandas-stubs + scipy-stubs)
+[tool.mypy]
+strict = true
+python_version = "3.11"
+explicit_package_bases = true
+files = ["mlsa", "main1_locus_discovery", "main2_sanger_differentiation", "main3_reference_alignment", "genome_identity_check",
+         "main1_locus_discovery_excluded", "main2_sanger_differentiation_excluded"]
+# the *_excluded wrappers import their sibling runner via a sys.path hack
+mypy_path = "main1_locus_discovery:main2_sanger_differentiation"
+# Biopython ships py.typed but leaves many functions unannotated.
+untyped_calls_exclude = ["Bio"]
+
+[[tool.mypy.overrides]]
+module = ["adjustText", "statsmodels.*"]
+ignore_missing_imports = true

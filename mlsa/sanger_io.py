@@ -6,8 +6,10 @@ from __future__ import annotations
 import re
 from collections.abc import Container
 from pathlib import Path
+from typing import Any, cast
 
 from Bio import SeqIO
+from Bio.SeqRecord import SeqRecord
 
 TNR_RE = re.compile(r"(\d{10})")
 
@@ -83,14 +85,14 @@ def mott_trim(qualities: list[int], error_threshold: float = 0.05) -> tuple[int,
     return best_start, best_end
 
 
-def mixed_peak_fraction(record, start: int, end: int, min_ratio: float = 0.25) -> float | None:
+def mixed_peak_fraction(record: SeqRecord, start: int, end: int, min_ratio: float = 0.25) -> float | None:
     """Fraction of base calls in [start, end) whose second-highest trace channel
     reaches min_ratio of the highest one at the base-call position (PLOC2). A
     second template in the PCR (mixed culture, cross-contamination) shows as
     such secondary peaks, which the instrument writes as Y/K/M/R/S/W or N. None
     if the trace lacks the channels or call positions."""
-    raw = record.annotations.get("abif_raw", {})
-    order = raw.get("FWO_1")
+    raw = cast("dict[str, Any]", record.annotations.get("abif_raw", {}))
+    order: str | bytes | None = raw.get("FWO_1")
     locs = raw.get("PLOC2")
     if order is None or locs is None:
         return None

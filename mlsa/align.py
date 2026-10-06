@@ -12,6 +12,7 @@ from __future__ import annotations
 import itertools
 import subprocess
 from pathlib import Path
+from typing import Any, cast
 
 import pandas as pd
 from Bio import Align, SeqIO
@@ -28,7 +29,7 @@ IQTREE_IMG = CONTAINER_ROOT / "quay.io-biocontainers-iqtree-3.1.3--h8471819_0.im
 SKANI_IMG = CONTAINER_ROOT / "quay.io-biocontainers-gtdbtk-2.7.2--pyhdfd78af_1.img"
 
 
-def _singularity_exec(img: Path, cmd: list[str], **kwargs) -> subprocess.CompletedProcess:
+def _singularity_exec(img: Path, cmd: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
     full_cmd = ["singularity", "exec", "--bind", "/shares", str(img)] + cmd
     return subprocess.run(full_cmd, check=True, **kwargs)
 
@@ -165,17 +166,20 @@ def barcoding_gap_check(dist: pd.DataFrame, species_of: dict[str, str]) -> pd.Da
         if name in dist.index:
             species_seqs.setdefault(sp, []).append(name)
 
+    def d(a: str, b: str) -> float:
+        return cast(float, dist.loc[a, b])
+
     def max_intra(sp: str) -> float:
         seqs = species_seqs.get(sp, [])
         if len(seqs) < 2:
             return 0.0
-        return max(dist.loc[a, b] for a, b in itertools.combinations(seqs, 2))
+        return max(d(a, b) for a, b in itertools.combinations(seqs, 2))
 
     def min_inter(sp_a: str, sp_b: str) -> float:
         seqs_a, seqs_b = species_seqs.get(sp_a, []), species_seqs.get(sp_b, [])
         if not seqs_a or not seqs_b:
             return float("nan")
-        return min(dist.loc[a, b] for a in seqs_a for b in seqs_b)
+        return min(d(a, b) for a in seqs_a for b in seqs_b)
 
     rows = []
     species = sorted(species_seqs.keys())
