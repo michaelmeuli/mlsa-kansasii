@@ -62,8 +62,8 @@ def main() -> None:
     ap.add_argument("reads", nargs="+", type=Path)
     ap.add_argument("--ref-dir", type=Path, default=GTDB_REPRESENTATIVES)
     ap.add_argument("--out", type=Path, default=OUTPUT)
-    ap.add_argument("--min-identity", type=float, default=0.99,
-                    help="closest reference must be at least this identical to call (default 0.99)")
+    ap.add_argument("--min-identity", type=float, default=0.98,
+                    help="closest reference must be at least this identical to call (default 0.98)")
     ap.add_argument("--min-margin", type=int, default=2,
                     help="closest reference must have at least this many fewer differences than the next (default 2)")
     args = ap.parse_args()
@@ -76,7 +76,7 @@ def main() -> None:
         res = identify_read(refs, name, locus, seq, args.min_identity, args.min_margin)
         row = {"read": name, "locus": locus, "read_bp": len(seq),
                "mixed_fraction": None if mixed is None else round(mixed, 4), "status": res.status,
-               "closest_species": res.closest_species}
+               "closest_species": res.closest_species, "atypical_hsp65": res.atypical}
         b, s = res.best, res.runner_up
         if b is not None:
             row.update(closest_accession=res.hits[b].ref.accession, closest_identity=round(100 * res.identity(b), 2),
@@ -84,8 +84,9 @@ def main() -> None:
             if s is not None:
                 row.update(second_species=res.hits[s].ref.species, second_identity=round(100 * res.identity(s), 2),
                            second_diffs=res.diffs[s], margin=res.diffs[s] - res.diffs[b])
-            for i, h in enumerate(res.hits):
-                row[f"identity_{h.ref.species}"] = round(100 * res.identity(i), 2)
+            for i, h in enumerate(res.hits):  # best genome per species when there are several
+                key = f"identity_{h.ref.species}"
+                row[key] = max(float(row.get(key) or 0), round(100 * res.identity(i), 2))
         print(f"{name}: {res.status}, closest {res.closest_species}"
               + (f" {row['closest_identity']}% ({row['closest_diffs']} diffs)" if res.hits else ""), flush=True)
         rows.append(row)

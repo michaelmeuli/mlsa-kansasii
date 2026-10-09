@@ -65,9 +65,12 @@ scp -r mimeul@cluster.s3it.uzh.ch:/shares/sander.imm.uzh/MM/kansasii/output/* "$
 ## Plain alignment to references vs MLSA
 
 `python main3_reference_alignment/run_reference_alignment.py <reads or dirs>` (about 3 s per read).
-Call = closest of the 7 representatives by differences over the read: `ok` (&ge;99% identity, &ge;2
-differences fewer than the next), `ambiguous`, `divergent` (&lt;99%, e.g. new lineage, introgressed
-locus, or bad read). Compared with main1/main2:
+Call = closest reference by differences over the read: `ok` (&ge;98% identity, &ge;2
+differences fewer than the closest other species), `ambiguous`, `divergent` (&lt;98%, e.g. new lineage, introgressed
+locus, or bad read). By default the 7 representatives; for hsp65 reads use `--ref-dir` with the 72 per-genome
+hsp65 amplicons (`scripts/make_hsp65_references.py`, job `submit_hsp65_amplicon_alignment.sbatch`), which also flags
+reads matching the atypical-hsp65 kansasii genomes (`atypical_hsp65` column). main4 benchmarks this against
+whole-genome species: 82 of 83 calls correct on 92 isolates (the miss is a mixed culture). Compared with main1/main2:
 
 - Plain alignment needs no locus extraction, no annotation and no tolerance estimate, works on any read,
   and takes seconds. It also never sees the 72-genome diversity, so the 3 Korean *M. kansasii* genomes
