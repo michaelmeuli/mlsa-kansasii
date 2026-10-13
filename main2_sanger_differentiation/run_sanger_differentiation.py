@@ -7,7 +7,7 @@ locus/loci (from main1_locus_discovery's candidate set) would need to be
 sequenced to resolve the isolates that remain ambiguous.
 
 Isolates are keyed by PROBENNUMMER: reads under any of an isolate's TNRs
-(TNR, TNR_NGS, TNR3..TNR6) are pooled. For each isolate + locus, all
+(TNR, TNR_JC, TNR_MM, TNR3..TNR6) are pooled. For each isolate + locus, all
 matching .ab1 reads are quality-trimmed and the
 best (longest, then highest quality) read that lies inside the complex is
 taken as that isolate's representative sequence (no fwd/rev consensus

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Create symbolic links to the .ab1 Sanger trace files of all TNR isolates
-# listed in data/imm/screening_map_link.csv (any of its TNR, TNR_NGS,
+# listed in data/imm/screening_map_link.csv (any of its TNR, TNR_JC, TNR_MM,
 # TNR3..TNR6 columns), found anywhere under
 # data/sanger/seq_mol_routine/***, into a flat directory
 # data/sanger/seq_kansasii/.
@@ -29,7 +29,7 @@ trap 'rm -f "$TNR_LIST" "$ALL_AB1" "$MATCHED"' EXIT
 # Locate the TNR columns by header name (their position is not stable across
 # versions of the map); skip empty cells (reference strains have no TNR).
 awk -F',' '
-    NR==1 { for (i=1; i<=NF; i++) if ($i ~ /^TNR(_NGS|[0-9]+)?$/) cols[i]; next }
+    NR==1 { for (i=1; i<=NF; i++) if ($i ~ /^TNR(_JC|_MM|[0-9]+)?$/) cols[i]; next }
     { for (i in cols) if ($i != "") print $i }
 ' "$SCREENING_MAP" | sort -u > "$TNR_LIST"
 n_tnr=$(wc -l < "$TNR_LIST")
