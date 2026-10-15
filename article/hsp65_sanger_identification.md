@@ -88,4 +88,4 @@ hsp65 reads are aligned to the amplicons of all 72 genomes (within-species diver
 
 ## Reproduction
 
-mlsa-kansasii: `main3_reference_alignment/submit_hsp65_amplicon_alignment.sbatch` (references from `scripts/make_hsp65_references.py`) and `main4_hsp65_vs_wgs/`; outputs in `output/mlsa/`. sanger-microsynth: `sanger_ms/call.py`, `main2_analyse_report/run_analyse_report.py`.
+mlsa-kansasii: `main3_reference_alignment/submit_hsp65_amplicon_alignment.sbatch` (references from `scripts/04_make_hsp65_references.py`) and `main4_hsp65_vs_wgs/`; outputs in `output/mlsa/`. sanger-microsynth: `sanger_ms/call.py`, `main2_analyse_report/run_analyse_report.py`.

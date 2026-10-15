@@ -15,8 +15,8 @@ classifies isolates. This file only lists what is easy to get wrong.
   `/shares/sander.imm.uzh/MM/kansasii/data`; `RESULTS`/`MAIN1_RESULTS` in
   each `run_*.py`; `REPO_ROOT` in the sbatch files. Update all of them if
   anything moves.
-- **Inputs are symlinks.** Run `scripts/link_sanger_kansasii.sh` (Sanger
-  `.ab1`) and `scripts/link_gtdb_kansasii_complex.sh` (GTDB genomes) again
+- **Inputs are symlinks.** Run `scripts/03_link_sanger_kansasii.sh` (Sanger
+  `.ab1`) and `scripts/02_link_gtdb_kansasii_complex.sh` (GTDB genomes) again
   after the source data changes. The isolate list is
   `data/imm/screening_map_link.csv`.
 - **Isolates are keyed by `PROBENNUMMER`.** Reads under all TNR columns

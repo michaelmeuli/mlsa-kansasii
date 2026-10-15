@@ -3,7 +3,7 @@
 # Download the GTDB bac120 metadata/taxonomy release and filter it down to
 # the M. kansasii species complex.
 #
-# Usage: download_filter_gtdb.sh [release]   (default release: 232)
+# Usage: 01_download_filter_gtdb.sh [release]   (default release: 232)
 
 set -euo pipefail
 

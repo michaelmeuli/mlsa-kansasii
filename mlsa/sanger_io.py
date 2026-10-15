@@ -34,7 +34,7 @@ _16S_RE = re.compile(
 
 
 def is_hsp65(filename: str) -> bool:
-    """Callers only pass .ab1 filenames (see scripts/link_sanger_kansasii.sh)."""
+    """Callers only pass .ab1 filenames (see scripts/03_link_sanger_kansasii.sh)."""
     return bool(_HSP65_RE.search(filename))
 
 

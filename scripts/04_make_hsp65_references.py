@@ -4,16 +4,17 @@ alignments/hsp65.raw.fasta), the reference set for hsp65 Sanger reads in main3 a
 sanger-microsynth. File name <accession>_hsp65.fasta, header ">acc Mycobacterium <species> strain <acc>"
 so mlsa.refalign.load_references reads the species from it.
 
-Usage: python scripts/make_hsp65_references.py [OUT_DIR]
+Usage: python scripts/04_make_hsp65_references.py [OUT_DIR]
 """
 from __future__ import annotations
 
 import sys
+import os
 from pathlib import Path
 
 from Bio import SeqIO
 
-ROOT = Path("/shares/sander.imm.uzh/MM/kansasii")
+ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii"))
 SRC = ROOT / "output" / "mlsa" / "main1_locus_discovery" / "alignments" / "hsp65.raw.fasta"
 DEFAULT_OUT = ROOT / "data" / "gtdb_genomes" / "Mycobacteriaceae" / "kansasii_complex_hsp65_amplicons"
 

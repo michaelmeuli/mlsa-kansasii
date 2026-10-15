@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Main program 2: using the Sanger hsp65 + 16S reads the lab already has for
 the TNR isolates in data/imm/screening_map_link.csv (symlinked into
-data/sanger/seq_kansasii by scripts/link_sanger_kansasii.sh), assess how far
+data/sanger/seq_kansasii by scripts/03_link_sanger_kansasii.sh), assess how far
 species-level differentiation actually gets today, and which additional
 locus/loci (from main1_locus_discovery's candidate set) would need to be
 sequenced to resolve the isolates that remain ambiguous.

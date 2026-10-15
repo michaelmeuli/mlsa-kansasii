@@ -7,12 +7,13 @@ the lab's existing hsp65 + 16S Sanger data already get?
 
 ## Layout
 
-- `scripts/link_sanger_kansasii.sh` — symlinks the `.ab1` Sanger traces of
+- `scripts/01_download_filter_gtdb.sh` — downloads GTDB r232 metadata (if missing) and lists the
+  accessions of the 7 complex species.
+- `scripts/03_link_sanger_kansasii.sh` — symlinks the `.ab1` Sanger traces of
   the TNR isolates in `data/imm/screening_map_link.csv` into
   `data/sanger/seq_kansasii/`.
-- `scripts/link_gtdb_kansasii_complex.sh` — downloads/filters GTDB r232
-  metadata for the 7 complex species and symlinks their genomes
-  (`.fna`/`genomic.gff`) into
+- `scripts/02_link_gtdb_kansasii_complex.sh` — symlinks the genomes of that list
+  (`.fna`/`genomic.gff`, downloaded by immensekansasii step 1) into
   `data/gtdb_genomes/Mycobacteriaceae/mlsa-kansasii/<species>/`.
 - `mlsa/` — shared Python package: locus extraction (GFF gene symbols; 16S
   and ITS via rRNA features; hsp65 via in-silico PCR with the lab's
@@ -42,13 +43,25 @@ bash Singularity/pull_singularity_img.sh /shares/sander.imm.uzh/software/pipelin
 
 ## Run order
 
-```bash
-bash scripts/link_sanger_kansasii.sh
-bash scripts/link_gtdb_kansasii_complex.sh
-sbatch main1_locus_discovery/submit_locus_discovery.sbatch
-sbatch main2_sanger_differentiation/submit_sanger_differentiation.sbatch   # after main1 finishes
-sbatch genome_identity_check/submit_genome_identity_check.sbatch           # independent of main1/main2
-```
+Run from the repo root. Inputs: `data/imm/screening_map_link.csv` (immensekansasii step 2) and the
+GTDB genomes downloaded by immensekansasii step 1. `scripts/` is numbered in the order it is called;
+the `mainN` programs are numbered by their own order:
+
+| # | Script | Needs | Writes |
+|---|---|---|---|
+| 1 | `scripts/01_download_filter_gtdb.sh` | - | accession list of the 7 species (`data/lit/gtdb/gtdb232/`) |
+| 2 | `scripts/02_link_gtdb_kansasii_complex.sh` | 1, genomes | `data/gtdb_genomes/.../mlsa-kansasii/<species>/` |
+| 3 | `scripts/03_link_sanger_kansasii.sh` | link table | `data/sanger/seq_kansasii/` |
+| 4 | `sbatch main1_locus_discovery/submit_locus_discovery.sbatch` (+ `main1_locus_discovery_excluded`) | 2 | `output/mlsa/main1_*` |
+| 5 | `python scripts/04_make_hsp65_references.py` | main1 | `data/gtdb_genomes/.../kansasii_complex_hsp65_amplicons/` |
+| 6 | `sbatch main2_sanger_differentiation/submit_sanger_differentiation.sbatch` (+ `_excluded`) | 3, main1 | `output/mlsa/main2_*` |
+| 7 | `sbatch main3_reference_alignment/submit_reference_alignment.sbatch`, then `submit_hsp65_amplicon_alignment.sbatch` | 3 (and 5 for the second) | `output/mlsa/main3_*` |
+| 8 | `sbatch genome_identity_check/submit_genome_identity_check.sbatch` | 2 | `output/mlsa/genome_identity_check/` |
+| 9 | immensekansasii `06_screening_map_results.py` | 6, 7 | `data/imm/screening_map_results.csv` |
+| 10 | `sbatch main4_hsp65_vs_wgs/submit_hsp65_vs_wgs.sbatch` | 6, 7, 9 | `output/mlsa/main4_hsp65_vs_wgs/` |
+
+`immensekansasii/scripts/run_downstream.sh` submits all of this (and the other repos' downstream
+steps) as one dependency chain.
 
 Outputs are written to the shares, not into the repo:
 `/shares/sander.imm.uzh/MM/kansasii/output/mlsa/main1_locus_discovery/` and
@@ -68,7 +81,7 @@ scp -r mimeul@cluster.s3it.uzh.ch:/shares/sander.imm.uzh/MM/kansasii/output/* "$
 Call = closest reference by differences over the read: `ok` (&ge;98% identity, &ge;2
 differences fewer than the closest other species), `ambiguous`, `divergent` (&lt;98%, e.g. new lineage, introgressed
 locus, or bad read). By default the 7 representatives; for hsp65 reads use `--ref-dir` with the 72 per-genome
-hsp65 amplicons (`scripts/make_hsp65_references.py`, job `submit_hsp65_amplicon_alignment.sbatch`), which also flags
+hsp65 amplicons (`scripts/04_make_hsp65_references.py`, job `submit_hsp65_amplicon_alignment.sbatch`), which also flags
 reads matching the atypical-hsp65 kansasii genomes (`atypical_hsp65` column). main4 benchmarks this against
 whole-genome species: 82 of 83 calls correct on 92 isolates (the miss is a mixed culture). Compared with main1/main2:
 
@@ -129,8 +142,8 @@ Sources: [Mycobacterium gastri, type strain designations](https://lpsn.dsmz.de/s
 
 | Step | Produces | Used by |
 |---|---|---|
-| `scripts/link_sanger_kansasii.sh` | `.ab1` symlinks in `data/sanger/seq_kansasii/` | main2 |
-| `scripts/link_gtdb_kansasii_complex.sh` | genome `.fna`/`.gff` symlinks in `data/gtdb_genomes/Mycobacteriaceae/mlsa-kansasii/` | main1, main2 (only if main1's output is missing), genome_identity_check |
+| `scripts/03_link_sanger_kansasii.sh` | `.ab1` symlinks in `data/sanger/seq_kansasii/` | main2 |
+| `scripts/02_link_gtdb_kansasii_complex.sh` | genome `.fna`/`.gff` symlinks in `data/gtdb_genomes/Mycobacteriaceae/mlsa-kansasii/` | main1, main2 (only if main1's output is missing), genome_identity_check |
 | main1 | `alignments/<locus>.raw.fasta` | main2 (hsp65 and 16S reference sequences) |
 | main1 | `single_locus_pair_separation.tsv` | main2 (`recommended_additional_loci.tsv`) |
 | main1 | `combo_results.tsv`, `winning_combo/`, `figures/`, `SUMMARY.txt` | final results |
@@ -245,11 +258,3 @@ rsync -a --exclude work --exclude .nextflow /shares/sander.imm.uzh/MM/kansasii/r
   `KANSASII_ROOT` environment variable to point elsewhere (e.g. a mapped drive).
 - Nextflow, Singularity and sbatch steps only run on the cluster (or WSL).
 
-## Windows checkout
-
-- `.gitattributes` forces LF line endings, so a Windows checkout (even with
-  `core.autocrlf=true`) keeps scripts runnable. Recommended: `git config core.autocrlf false`
-  and `git config core.longpaths true`.
-- Scripts default to the cluster root `/shares/sander.imm.uzh/MM/kansasii`; set the
-  `KANSASII_ROOT` environment variable to point elsewhere (e.g. a mapped drive).
-- Nextflow, Singularity and sbatch steps only run on the cluster (or WSL).

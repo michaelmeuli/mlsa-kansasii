@@ -33,7 +33,8 @@ from Bio import SeqIO  # noqa: E402
 OUT_ROOT = DATA_ROOT.parent / "output"
 MLSA = OUT_ROOT / "mlsa"
 OUTPUT = MLSA / "main4_hsp65_vs_wgs"
-GENOMES = DATA_ROOT.parent / "runs" / "mkan329" / "mkan329_transfer_result" / "genomes"
+# per-sample assemblies of all batches (mkan329_transfer_result/genomes only holds the last batch)
+ASSEMBLIES = DATA_ROOT.parent / "runs" / "mkan329" / "assembly" / "results"
 
 
 def stem(read: str) -> str:
@@ -62,8 +63,8 @@ def insilico_vs_wgs(truth: pd.DataFrame) -> pd.DataFrame:
     fwd, rev_options = get_hsp65_primers()
     rows = []
     for _, t in truth.iterrows():
-        f = next(iter(GENOMES.glob(f"*/{t['PROBENNUMMER']}_*.fna")), None)
-        if f is None:
+        f = ASSEMBLIES / t["PROBENNUMMER"] / "1_unicycler" / f"{t['PROBENNUMMER']}.fasta"
+        if not f.exists():
             continue
         contigs = {r.id: str(r.seq) for r in SeqIO.parse(f, "fasta")}
         amp = in_silico_pcr(contigs, fwd, rev_options)
@@ -84,7 +85,7 @@ def insilico_vs_wgs(truth: pd.DataFrame) -> pd.DataFrame:
 
 def main() -> None:
     OUTPUT.mkdir(parents=True, exist_ok=True)
-    s = pd.read_csv(OUT_ROOT / "screening_map_results.csv", dtype=str).fillna("")
+    s = pd.read_csv(DATA_ROOT / "imm" / "screening_map_results.csv", dtype=str).fillna("")
     truth = s[s["species"].isin(SPECIES)]
     sv = sanger_vs_wgs(truth)
     sv.to_csv(OUTPUT / "sanger_vs_wgs.tsv", sep="\t", index=False)
