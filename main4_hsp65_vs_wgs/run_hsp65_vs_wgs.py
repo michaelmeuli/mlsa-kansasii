@@ -35,6 +35,7 @@ MLSA = OUT_ROOT / "mlsa"
 OUTPUT = MLSA / "main4_hsp65_vs_wgs"
 # per-sample assemblies of all batches (mkan329_transfer_result/genomes only holds the last batch)
 ASSEMBLIES = DATA_ROOT.parent / "runs" / "mkan329" / "assembly" / "results"
+REFERENCE_STRAINS = frozenset(f"Mkan329-{i:03d}" for i in range(126, 134))
 
 
 def stem(read: str) -> str:
@@ -86,7 +87,8 @@ def insilico_vs_wgs(truth: pd.DataFrame) -> pd.DataFrame:
 def main() -> None:
     OUTPUT.mkdir(parents=True, exist_ok=True)
     s = pd.read_csv(DATA_ROOT / "imm" / "screening_map_results.csv", dtype=str).fillna("")
-    truth = s[s["species"].isin(SPECIES)]
+    # Mkan329-126 to -133 are reference strains, not patient isolates
+    truth = s[s["species"].isin(SPECIES) & ~s["PROBENNUMMER"].isin(REFERENCE_STRAINS)]
     sv = sanger_vs_wgs(truth)
     sv.to_csv(OUTPUT / "sanger_vs_wgs.tsv", sep="\t", index=False)
     iv = insilico_vs_wgs(truth)
