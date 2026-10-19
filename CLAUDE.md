@@ -9,8 +9,8 @@ classifies isolates. This file only lists what is easy to get wrong.
 - **Environment:** the system `python3` has no pandas or Biopython. Use
   `conda activate env_mlsa`. Real runs go through the `submit_*.sbatch` SLURM
   jobs (`module load apptainer`, mafft/iqtree via Singularity). Don't run the
-  full pipelines on the login node. Job logs (`*-<jobid>.log`) are written to the
-  directory `sbatch` was run from.
+  full pipelines on the login node. Job logs (`*-<jobid>.log`) are written to
+  `output/mlsa/logs/` (the directory must exist before `sbatch`).
 - **Paths are hardcoded:** data paths in `mlsa/__init__.py`, which resolve to
   `/shares/sander.imm.uzh/MM/kansasii/data`; `RESULTS`/`MAIN1_RESULTS` in
   each `run_*.py`; `REPO_ROOT` in the sbatch files. Update all of them if

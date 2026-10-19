@@ -3,7 +3,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=16G
 #SBATCH --time=01:00:00
-#SBATCH --output=%x-%j.log
+#SBATCH --output=/shares/sander.imm.uzh/MM/kansasii/output/mlsa/logs/%x-%j.log
 # Singularity fails on this node (no /etc/resolv.conf).
 #SBATCH --exclude=u24-cva0000-129
 
