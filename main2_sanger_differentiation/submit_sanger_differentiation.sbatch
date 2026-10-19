@@ -14,3 +14,8 @@ source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate env_mlsa
 
 python "$REPO_ROOT/main2_sanger_differentiation/run_sanger_differentiation.py"
+
+# provenance (see kansasii-docs/docs/PROVENANCE.md)
+bash /shares/sander.imm.uzh/MM/kansasii/repos/kansasii-docs/bin/write_manifest.sh \
+  "/shares/sander.imm.uzh/MM/kansasii/output/mlsa/main2_sanger_differentiation" \
+  /shares/sander.imm.uzh/MM/kansasii/repos/mlsa-kansasii submit_sanger_differentiation.sbatch /shares/sander.imm.uzh/MM/kansasii/data/imm/screening_map_link.csv

@@ -17,3 +17,8 @@ python "$REPO_ROOT/main3_reference_alignment/run_reference_alignment.py" \
     --ref-dir "$ROOT/data/gtdb_genomes/Mycobacteriaceae/kansasii_complex_hsp65_amplicons" \
     --out "$ROOT/output/mlsa/main3_reference_alignment_hsp65_amplicons" \
     "$ROOT/data/sanger/seq_kansasii"
+
+# provenance (see kansasii-docs/docs/PROVENANCE.md)
+bash /shares/sander.imm.uzh/MM/kansasii/repos/kansasii-docs/bin/write_manifest.sh \
+  "/shares/sander.imm.uzh/MM/kansasii/output/mlsa/main3_reference_alignment_hsp65_amplicons" \
+  /shares/sander.imm.uzh/MM/kansasii/repos/mlsa-kansasii submit_hsp65_amplicon_alignment.sbatch /shares/sander.imm.uzh/MM/kansasii/data/sanger/seq_kansasii
