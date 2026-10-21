@@ -135,7 +135,7 @@ of 3 is 3 bases, not 3 sigma.
 What drives it (all 201 `ok` reads of the Sanger set; truth subset = the 127 reads with a whole-genome species):
 - **The 3 Korean *M. kansasii* genomes (GCF_002705785.1, -825.1, -865.1), not IUPAC handling.** Their hsp65 is
   persicum-like (11 SNPs from the other kansasii), so for a persicum read the "second species" is *kansasii*, via these
-  three genomes, 3 differences away. That is why persicum reads sit at margin 2-3 (mean 2.85; 5 reads at margin 2, 24 at 3) while
+  three genomes, 3 differences away. That is why persicum reads sit at margin 2-3 (mean 2.85; 29 of the 201 `ok` reads have margin 2-3, nearly all persicum) while
   all other species have 6-16. Run F (consensus references built without the 3 genomes, `submit_hsp65_iupac_excluded.sbatch`)
   moves the persicum margin to 7.1-7.4 (second species is then gastri) and the 2 `ambiguous` reads become `ok`;
   the 111 `ok` / 110 correct on the truth subset are unchanged. The margin grows only because the nearest kansasii-like
