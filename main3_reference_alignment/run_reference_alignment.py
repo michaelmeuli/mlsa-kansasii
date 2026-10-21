@@ -66,6 +66,8 @@ def main() -> None:
                     help="closest reference must be at least this identical to call (default 0.98)")
     ap.add_argument("--min-margin", type=int, default=2,
                     help="closest reference must have at least this many fewer differences than the next (default 2)")
+    ap.add_argument("--iupac", action="store_true",
+                    help="IUPAC-aware: keep ambiguity codes in the references, score compatible codes as matches")
     args = ap.parse_args()
 
     refs = load_references(args.ref_dir, SPECIES)
@@ -73,7 +75,7 @@ def main() -> None:
     args.out.mkdir(parents=True, exist_ok=True)
     rows: list[dict[str, str | int | float | None]] = []
     for name, locus, seq, mixed in iter_reads(args.reads):
-        res = identify_read(refs, name, locus, seq, args.min_identity, args.min_margin)
+        res = identify_read(refs, name, locus, seq, args.min_identity, args.min_margin, args.iupac)
         row = {"read": name, "locus": locus, "read_bp": len(seq),
                "mixed_fraction": None if mixed is None else round(mixed, 4), "status": res.status,
                "closest_species": res.closest_species, "atypical_hsp65": res.atypical}

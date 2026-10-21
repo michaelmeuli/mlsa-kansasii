@@ -61,7 +61,11 @@ def _kmer_codes(seq: str | bytes) -> npt.NDArray[np.uint32]:
     return code
 
 
-_COMP = str.maketrans("ACGTN-", "TGCAN-")
+_COMP = str.maketrans("ACGTRYKMSWBDHVN-", "TGCAYRMKSWVHDBN-")
+# IUPAC code -> the bases it stands for (N = any base is treated as "no information", see _diff)
+IUPAC_BASES = {"A": "A", "C": "C", "G": "G", "T": "T", "R": "AG", "Y": "CT", "K": "GT", "M": "AC", "S": "CG",
+               "W": "AT", "B": "CGT", "D": "AGT", "H": "ACT", "V": "ACG", "N": "ACGT"}
+BASES_IUPAC = {frozenset(v): k for k, v in IUPAC_BASES.items()}
 
 
 def revcomp(seq: str) -> str:
@@ -133,6 +137,24 @@ _aligner = PairwiseAligner(mode="global", match_score=2, mismatch_score=-3,
 _aligner.end_deletion_score = 0  # the reference window may overhang the read freely
 
 
+def _iupac_aligner() -> PairwiseAligner:
+    """Same gap scores; substitutions by IUPAC set overlap: identical code 2, compatible (sets overlap) 1,
+    anything with N 0, disjoint -3."""
+    from Bio.Align import substitution_matrices
+    letters = "".join(IUPAC_BASES)
+    m = substitution_matrices.Array(alphabet=letters, dims=2)
+    for a in letters:
+        for b in letters:
+            sa, sb = set(IUPAC_BASES[a]), set(IUPAC_BASES[b])
+            m[a, b] = 0 if "N" in (a, b) else 2 if a == b else 1 if sa & sb else -3
+    al = PairwiseAligner(mode="global", substitution_matrix=m, open_gap_score=-5, extend_gap_score=-2)
+    al.end_deletion_score = 0
+    return al
+
+
+_aligner_iupac = _iupac_aligner()
+
+
 @dataclass
 class RefHit:
     """The read laid over one reference: ref_cols[i] is the reference base at read position i
@@ -175,15 +197,19 @@ def _seed_clusters(ref: Reference, read: str) -> list[tuple[int, str, int, int]]
     return sorted(out, reverse=True)[:3]
 
 
-def align_to_reference(ref: Reference, read: str) -> RefHit | None:
-    """Best end-to-end placement of the read on the reference, None if no seeds."""
+def align_to_reference(ref: Reference, read: str, iupac: bool = False) -> RefHit | None:
+    """Best end-to-end placement of the read on the reference, None if no seeds. iupac: align with
+    IUPAC-aware scores and keep ambiguity codes of the reference (default: any non-ACGT reference base -> N)."""
+    aligner = _aligner_iupac if iupac else _aligner
+    if iupac:
+        read = "".join(c if c in IUPAC_BASES else "N" for c in read)
     ref.load()
     best = None
     for seeds, cid, diag, strand in _seed_clusters(ref, read):
         contig = ref.contigs[cid]
         lo, hi = max(0, diag - PAD), min(len(contig), diag + len(read) + PAD)
         q = read if strand == 1 else revcomp(read)
-        aln = _aligner.align(contig[lo:hi], q)[0]
+        aln = aligner.align(contig[lo:hi], q)[0]
         if best is None or aln.score > best[0]:
             best = (aln.score, aln, cid, lo, strand, seeds)
     if best is None:
@@ -194,15 +220,23 @@ def align_to_reference(ref: Reference, read: str) -> RefHit | None:
         for k in range(q1 - q0):
             cols[q0 + k] = ref.contigs[cid][lo + t0 + k]
     ref_cols = "".join(cols)
-    ref_cols = "".join(c if c in "ACGT-" else "N" for c in ref_cols)
+    keep = IUPAC_BASES if iupac else "ACGT"
+    ref_cols = "".join(c if c in keep or c == "-" else "N" for c in ref_cols)
     if strand == -1:  # report in the orientation of the read as given
         ref_cols = ref_cols[::-1].translate(_COMP)
     return RefHit(ref, ref_cols, cid, lo, "+" if strand == 1 else "-", seeds)
 
 
-def _diff(a: str, b: str) -> tuple[int, int]:
-    """(differences, compared columns), over columns where both have an ACGT base."""
+def _diff(a: str, b: str, iupac: bool = False) -> tuple[int, int]:
+    """(differences, compared columns), over columns where both have an ACGT base. iupac: columns where both
+    have a code other than N; a difference only if the two codes share no base (R vs A is a match)."""
     m = d = 0
+    if iupac:
+        for x, y in zip(a, b):
+            if x in IUPAC_BASES and y in IUPAC_BASES and x != "N" and y != "N":
+                m += 1
+                d += not set(IUPAC_BASES[x]) & set(IUPAC_BASES[y])
+        return d, m
     for x, y in zip(a, b):
         if x in "ACGT" and y in "ACGT":
             m += 1
@@ -286,9 +320,9 @@ class ReadResult:
 
 
 def identify_read(refs: list[Reference], name: str, locus: str | None, seq: str,
-                  min_identity: float = 0.98, min_margin: int = 2) -> ReadResult:
-    hits = [h for h in (align_to_reference(r, seq) for r in refs) if h is not None]
-    dc = [_diff(seq, h.ref_cols) for h in hits]
+                  min_identity: float = 0.98, min_margin: int = 2, iupac: bool = False) -> ReadResult:
+    hits = [h for h in (align_to_reference(r, seq, iupac) for r in refs) if h is not None]
+    dc = [_diff(seq, h.ref_cols, iupac) for h in hits]
     return ReadResult(name, locus, seq, hits, [d for d, _ in dc], [c for _, c in dc], min_identity, min_margin)
 
 
