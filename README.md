@@ -94,6 +94,37 @@ whole-genome species: 82 of 83 calls correct on 92 isolates (the miss is a mixed
 - Neither fixes a single-locus limit: hsp65 and 16S alone cannot separate every species (16S reads
   tie between several references). More loci (gyrA, see main2 recommendations) or genome data are needed.
 
+## IUPAC-aware alignment (opt-in, tested 2026-10-21: no gain)
+
+Sanger reads carry IUPAC codes (Y, R, K, M, S, W, N) where the trace has mixed peaks. By default main3 *ignores*
+them: `_diff` in `mlsa/refalign.py` compares only columns where read and reference both have A/C/G/T, and any
+non-ACGT reference base becomes `N`. The references (genome amplicons, locus FASTAs) are pure ACGT, so
+IUPAC-aware scoring on the read side alone has little to act on. The test therefore also built references that
+carry ambiguity: one consensus per species from `output/mlsa/main1_locus_discovery/alignments/hsp65.aligned.fasta`
+where every column with more than one base becomes the IUPAC code of those bases.
+
+`run_reference_alignment.py --iupac` (default off, so the default output is unchanged):
+- the aligner scores identical codes 2, overlapping codes (R vs A) 1, anything with N 0, disjoint codes -3;
+- ambiguity codes in the reference are kept;
+- a column is a difference only if the two codes share no base (R vs A matches, R vs C differs); N columns are not compared.
+
+`scripts/05_make_iupac_hsp65_references.py MIN_MINOR OUT_DIR` builds the consensus references (MIN_MINOR 1 = every
+polymorphic site, 2 = a base needs >= 2 genomes). Job `main3_reference_alignment/submit_hsp65_iupac_experiment.sbatch`
+writes `output/mlsa/main3_reference_alignment_hsp65_iupac/`: A = baseline (the amplicon run), B = `--iupac` on the 72
+amplicons, C/D = `--iupac` on the consensus (MIN_MINOR 1/2), E = old scoring on the same 7 consensus references.
+
+**Result** (127 hsp65 reads with a whole-genome species): A, B, C, D and E are identical, 110 correct, 1 wrong
+(the mixed culture), 16 without a call (15 divergent, 1 no hit), and no call flips. The no-calls are 77-85 % identity
+reads (Rothia contaminant, failed traces), not ambiguity-code problems. Margins to the second species grew slightly
+for 93 of the 101 `ok` reads that changed, which did not alter any call. 16S and main2's distances were not tested.
+The consensus has 11 ambiguous sites for kansasii (mostly from the 3 atypical-hsp65 genomes) and at most 3 for the others.
+
+Independent of `--iupac`, `_COMP` (used to put a reverse-strand hit back in the read's orientation) now has the full
+IUPAC complement; before, it only knew N, so R, Y, K, M, S and W were not complemented. Same fix in
+sanger-microsynth `sanger_ms/refalign.py`; the `--iupac` code exists only in mlsa-kansasii. Known remaining
+inconsistency: `p_distance_matrix` in `mlsa/align.py` (main2) counts IUPAC letters as mismatches, whereas
+`pairwise_p_distance` skips them.
+
 ## References used by main3 (and in the lab's alignment PDFs)
 
 main3 aligns each read to one whole genome per species
