@@ -85,7 +85,7 @@ def main() -> None:
                        closest_diffs=res.diffs[b], compared_bp=res.compared[b])
             if s is not None:
                 row.update(second_species=res.hits[s].ref.species, second_identity=round(100 * res.identity(s), 2),
-                           second_diffs=res.diffs[s], margin=res.diffs[s] - res.diffs[b])
+                           second_diffs=res.diffs[s], second_compared_bp=res.compared[s], margin=res.diffs[s] - res.diffs[b])
             for i, h in enumerate(res.hits):  # best genome per species when there are several
                 key = f"identity_{h.ref.species}"
                 row[key] = max(float(row.get(key) or 0), round(100 * res.identity(i), 2))

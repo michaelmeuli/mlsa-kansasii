@@ -129,32 +129,44 @@ inconsistency: `p_distance_matrix` in `mlsa/align.py` (main2) counts IUPAC lette
 
 `margin` = differences of the best hit of *another species* minus differences of the closest hit, over the read
 (`ReadResult.runner_up`, `status` in `mlsa/refalign.py`). A call is `ok` only if identity is >= 98 % and the margin is
->= 2 (`--min-margin`). It is a count of differing bases, not a probability: the threshold is a heuristic and a margin
-of 3 is 3 bases, not 3 sigma.
+>= 2 (`--min-margin`).
+
+**Reading it.** For one fixed reference set, a larger margin is more confidence: more bases separate the closest species
+from the next, so more sequencing errors or mixed-peak miscalls would be needed to flip the call. Limits:
+- It is a count of bases, not a probability; the cutoff of 2 is a heuristic, not a significance level.
+- Pairs of species are not equally far apart in hsp65 (persicum vs kansasii is 3 bases, others 6-16), so a margin is
+  only comparable between reads for the same species pair.
+- Differences are counted over columns where both sequences have a base (N and, by default, ambiguity codes are
+  skipped), so a read with many such columns compares fewer positions and has a lower ceiling on its margin.
+  `compared_bp` (columns compared for the closest hit) and `second_compared_bp` (for the runner-up) are in
+  `reference_alignment.tsv` next to `margin`; check them before trusting a thin read. The two can differ, so the
+  margin is a difference of counts over slightly different column sets.
+- It assumes a low error rate (Mott-trimmed reads of ~400 bp).
+- It is **not comparable between reference sets**: changing the references changes what "second species" is (below).
 
 What drives it (all 201 `ok` reads of the Sanger set; truth subset = the 127 reads with a whole-genome species):
 - **The 3 Korean *M. kansasii* genomes (GCF_002705785.1, -825.1, -865.1), not IUPAC handling.** Their hsp65 is
   persicum-like (11 SNPs from the other kansasii), so for a persicum read the "second species" is *kansasii*, via these
-  three genomes, 3 differences away. That is why persicum reads sit at margin 2-3 (mean 2.85; 29 of the 201 `ok` reads have margin 2-3, nearly all persicum) while
-  all other species have 6-16. Run F (consensus references built without the 3 genomes, `submit_hsp65_iupac_excluded.sbatch`)
-  moves the persicum margin to 7.1-7.4 (second species is then gastri) and the 2 `ambiguous` reads become `ok`;
-  the 111 `ok` / 110 correct on the truth subset are unchanged. The margin grows only because the nearest kansasii-like
-  sequence is removed, so the larger number is not better evidence: a *Korean-type* kansasii isolate (kansasii by ANI
-  and at every other locus, LIT.md) would still be called persicum, with no hint of the problem. Keeping the 3 genomes
-  gives the honest margin.
+  three genomes, 3 differences away. That is why persicum reads sit at margin 2-3 (mean 2.85; 29 of the 201 `ok` reads
+  have margin 2-3, nearly all persicum) while all other species have 6-16. Run F (consensus references built without
+  the 3 genomes, `submit_hsp65_iupac_excluded.sbatch`) moves the persicum margin to 7.1-7.4 (second species is then
+  gastri) and the 2 `ambiguous` reads become `ok`; the 111 `ok` / 110 correct on the truth subset are unchanged. The
+  margin grows because the nearest kansasii-like sequence was removed from the references, not because the reads are
+  better supported: the F and A numbers measure different things. A *Korean-type* kansasii isolate (kansasii by ANI and
+  at every other locus, LIT.md) would still be called persicum under F, with no hint of the problem. Keeping the 3
+  genomes gives the margin against the nearest real genome.
 - **No Sanger read matches these genomes.** `atypical_hsp65` is false for all reads in every run, so there is no
   Korean-like isolate in this set to test the case; "Korean" refers to the genomes, not to reads. Runs A-E (and the
   published amplicon run) include the 3 genomes; only F leaves them out.
 - **IUPAC consensus (C/D) changes margins only by averaging genomes:** kansasii +0.6 (7.4 -> 8.0), pseudokansasii -0.6,
   attenuatum -2, innocens -3, persicum 0 (still 2.85, because the consensus kansasii codes the Korean alleles at 11
-  sites and persicum reads match them). That is a property of 7 consensus references vs 72 genomes, not a gain in
-  evidence. It also hides which genome is closest, and the atypical flag cannot be raised from a species consensus.
+  sites and persicum reads match them). That follows from 7 consensus references vs 72 genomes. It also hides which
+  genome is closest, and the atypical flag cannot be raised from a species consensus.
 
-**Are the results more trustworthy?** No. Calls, correctness (110 of 111, one mixed culture) and the number of reads
-with margin <= 3 on the truth subset (11) are the same in A-E. The only run with fewer weak margins (F, 0) removes
-the information that makes them weak. The margin that matters for trust is the one against the nearest *real genome*
-(run A); it says persicum vs kansasii in hsp65 alone is a 3-base call. A tie-breaking second locus (gyrA) is the fix,
-not ambiguity handling.
+**Does IUPAC handling make the results more trustworthy?** No. Calls, correctness (110 of 111, one mixed culture) and
+the number of reads with margin <= 3 on the truth subset (11) are the same in A-E, and for the same references (A vs B)
+every margin is identical. Within run A the margins are meaningful: persicum vs kansasii in hsp65 alone is a 3-base
+call, which is the weak point. A second locus (gyrA) addresses that; ambiguity handling does not.
 
 ## References used by main3 (and in the lab's alignment PDFs)
 
