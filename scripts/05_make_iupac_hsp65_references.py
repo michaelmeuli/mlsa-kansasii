@@ -3,9 +3,10 @@
 with more than one base among the species' genomes becomes the IUPAC code of those bases. Experiment for
 `run_reference_alignment.py --iupac`; the genome-level references have no ambiguity codes.
 
-Usage: python scripts/05_make_iupac_hsp65_references.py MIN_MINOR OUT_DIR
+Usage: python scripts/05_make_iupac_hsp65_references.py MIN_MINOR OUT_DIR [ACCESSION ...]
   MIN_MINOR  a base counts only if at least this many genomes of the species carry it (1 = every polymorphic
              site, 2 = ignore singleton variants)
+ACCESSION ...  genomes left out (e.g. the 3 atypical-hsp65 kansasii genomes, mlsa.refalign.ATYPICAL_HSP65)
 Header ">REFSP_<species> Mycobacterium <species> strain consensus" so mlsa.refalign.load_references reads the species.
 """
 from __future__ import annotations
@@ -37,10 +38,12 @@ def consensus(seqs: list[str], min_minor: int) -> str:
 
 
 def main() -> None:
-    min_minor, out = int(sys.argv[1]), Path(sys.argv[2])
+    min_minor, out, skip = int(sys.argv[1]), Path(sys.argv[2]), set(sys.argv[3:])
     out.mkdir(parents=True, exist_ok=True)
     by_sp: dict[str, list[str]] = defaultdict(list)
     for rec in SeqIO.parse(SRC, "fasta"):
+        if rec.id.split("__", 1)[1] in skip:
+            continue
         by_sp[rec.id.split("__", 1)[0]].append(str(rec.seq).upper())
     for sp, seqs in by_sp.items():
         cons = consensus(seqs, min_minor).replace("-", "")

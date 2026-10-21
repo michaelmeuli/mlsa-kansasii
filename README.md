@@ -115,8 +115,8 @@ amplicons, C/D = `--iupac` on the consensus (MIN_MINOR 1/2), E = old scoring on 
 
 **Result** (127 hsp65 reads with a whole-genome species): A, B, C, D and E are identical, 110 correct, 1 wrong
 (the mixed culture), 16 without a call (15 divergent, 1 no hit), and no call flips. The no-calls are 77-85 % identity
-reads (Rothia contaminant, failed traces), not ambiguity-code problems. Margins to the second species grew slightly
-for 93 of the 101 `ok` reads that changed, which did not alter any call. 16S and main2's distances were not tested.
+reads (Rothia contaminant, failed traces), not ambiguity-code problems. The margin to the second species changed
+for 101 of the 201 `ok` reads (see below), but no call. 16S and main2's distances were not tested.
 The consensus has 11 ambiguous sites for kansasii (mostly from the 3 atypical-hsp65 genomes) and at most 3 for the others.
 
 Independent of `--iupac`, `_COMP` (used to put a reverse-strand hit back in the read's orientation) now has the full
@@ -124,6 +124,37 @@ IUPAC complement; before, it only knew N, so R, Y, K, M, S and W were not comple
 sanger-microsynth `sanger_ms/refalign.py`; the `--iupac` code exists only in mlsa-kansasii. Known remaining
 inconsistency: `p_distance_matrix` in `mlsa/align.py` (main2) counts IUPAC letters as mismatches, whereas
 `pairwise_p_distance` skips them.
+
+### The margin to the second-best species
+
+`margin` = differences of the best hit of *another species* minus differences of the closest hit, over the read
+(`ReadResult.runner_up`, `status` in `mlsa/refalign.py`). A call is `ok` only if identity is >= 98 % and the margin is
+>= 2 (`--min-margin`). It is a count of differing bases, not a probability: the threshold is a heuristic and a margin
+of 3 is 3 bases, not 3 sigma.
+
+What drives it (all 201 `ok` reads of the Sanger set; truth subset = the 127 reads with a whole-genome species):
+- **The 3 Korean *M. kansasii* genomes (GCF_002705785.1, -825.1, -865.1), not IUPAC handling.** Their hsp65 is
+  persicum-like (11 SNPs from the other kansasii), so for a persicum read the "second species" is *kansasii*, via these
+  three genomes, 3 differences away. That is why persicum reads sit at margin 2-3 (mean 2.85; 5 reads at margin 2, 24 at 3) while
+  all other species have 6-16. Run F (consensus references built without the 3 genomes, `submit_hsp65_iupac_excluded.sbatch`)
+  moves the persicum margin to 7.1-7.4 (second species is then gastri) and the 2 `ambiguous` reads become `ok`;
+  the 111 `ok` / 110 correct on the truth subset are unchanged. The margin grows only because the nearest kansasii-like
+  sequence is removed, so the larger number is not better evidence: a *Korean-type* kansasii isolate (kansasii by ANI
+  and at every other locus, LIT.md) would still be called persicum, with no hint of the problem. Keeping the 3 genomes
+  gives the honest margin.
+- **No Sanger read matches these genomes.** `atypical_hsp65` is false for all reads in every run, so there is no
+  Korean-like isolate in this set to test the case; "Korean" refers to the genomes, not to reads. Runs A-E (and the
+  published amplicon run) include the 3 genomes; only F leaves them out.
+- **IUPAC consensus (C/D) changes margins only by averaging genomes:** kansasii +0.6 (7.4 -> 8.0), pseudokansasii -0.6,
+  attenuatum -2, innocens -3, persicum 0 (still 2.85, because the consensus kansasii codes the Korean alleles at 11
+  sites and persicum reads match them). That is a property of 7 consensus references vs 72 genomes, not a gain in
+  evidence. It also hides which genome is closest, and the atypical flag cannot be raised from a species consensus.
+
+**Are the results more trustworthy?** No. Calls, correctness (110 of 111, one mixed culture) and the number of reads
+with margin <= 3 on the truth subset (11) are the same in A-E. The only run with fewer weak margins (F, 0) removes
+the information that makes them weak. The margin that matters for trust is the one against the nearest *real genome*
+(run A); it says persicum vs kansasii in hsp65 alone is a 3-base call. A tie-breaking second locus (gyrA) is the fix,
+not ambiguity handling.
 
 ## References used by main3 (and in the lab's alignment PDFs)
 
