@@ -115,7 +115,7 @@ amplicons, C/D = `--iupac` on the consensus (MIN_MINOR 1/2), E = old scoring on 
 **Result** (127 hsp65 reads with a whole-genome species): A, B, C, D and E are identical, 110 correct, 1 wrong
 (the mixed culture), 16 without a call (15 divergent, 1 no hit), and no call flips. The no-calls are 77-85 % identity
 reads (Rothia contaminant, failed traces), not ambiguity-code problems. The margin to the second species changed
-for 101 of the 201 `ok` reads (see below), but no call. 16S and sanger_mlsa's distances were not tested.
+for 101 of the 201 `ok` reads of the hsp65 amplicon run (see below), but no call. 16S and sanger_mlsa's distances were not tested.
 The consensus has 11 ambiguous sites for kansasii (mostly from the 3 atypical-hsp65 genomes) and at most 3 for the others.
 
 Independent of `--iupac`, `_COMP` (used to put a reverse-strand hit back in the read's orientation) now has the full
@@ -143,10 +143,10 @@ from the next, so more sequencing errors or mixed-peak miscalls would be needed 
 - It assumes a low error rate (Mott-trimmed reads of ~400 bp).
 - It is **not comparable between reference sets**: changing the references changes what "second species" is (below).
 
-What drives it (all 201 `ok` reads of the Sanger set; truth subset = the 127 reads with a whole-genome species):
+What drives it (all 201 `ok` reads of the Sanger set in the hsp65 amplicon run; truth subset = the 127 reads with a whole-genome species):
 - **The 3 Korean *M. kansasii* genomes (GCF_002705785.1, -825.1, -865.1), not IUPAC handling.** Their hsp65 is
   persicum-like (11 SNPs from the other kansasii), so for a persicum read the "second species" is *kansasii*, via these
-  three genomes, 3 differences away. That is why persicum reads sit at margin 2-3 (mean 2.85; 29 of the 201 `ok` reads
+  three genomes, 3 differences away. That is why persicum reads sit at margin 2-3 (mean 2.85; 29 of the 201 `ok` reads (hsp65 amplicon run)
   have margin 2-3, nearly all persicum) while all other species have 6-16. Run F (consensus references built without
   the 3 genomes, `submit_hsp65_iupac_excluded.sbatch`) moves the persicum margin to 7.1-7.4 (second species is then
   gastri) and the 2 `ambiguous` reads become `ok`; the 111 `ok` / 110 correct on the truth subset are unchanged. The
