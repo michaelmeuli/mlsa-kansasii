@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-"""Write one FASTA per reference genome with its in-silico hsp65 amplicon (main1's
-alignments/hsp65.raw.fasta), the reference set for hsp65 Sanger reads in main3 and
+"""Write one FASTA per reference genome with its in-silico hsp65 amplicon (locus_discovery's
+alignments/hsp65.raw.fasta), the reference set for hsp65 Sanger reads in sanger_refalign and
 sanger-microsynth. File name <accession>_hsp65.fasta, header ">acc Mycobacterium <species> strain <acc>"
 so mlsa.refalign.load_references reads the species from it.
 
@@ -15,7 +15,7 @@ from pathlib import Path
 from Bio import SeqIO
 
 ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii"))
-SRC = ROOT / "output" / "mlsa" / "main1_locus_discovery" / "alignments" / "hsp65.raw.fasta"
+SRC = ROOT / "output" / "mlsa" / "locus_discovery" / "alignments" / "hsp65.raw.fasta"
 DEFAULT_OUT = ROOT / "data" / "gtdb_genomes" / "Mycobacteriaceae" / "kansasii_complex_hsp65_amplicons"
 
 

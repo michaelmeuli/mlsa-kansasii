@@ -9,7 +9,7 @@ set -euo pipefail
 
 REPO_ROOT="/shares/sander.imm.uzh/MM/kansasii/repos/mlsa-kansasii"
 ROOT="/shares/sander.imm.uzh/MM/kansasii"
-OUT="$ROOT/output/mlsa/main3_reference_alignment_hsp65_iupac"
+OUT="$ROOT/output/mlsa/sanger_refalign_hsp65_iupac"
 AMPL="$ROOT/data/gtdb_genomes/Mycobacteriaceae/kansasii_complex_hsp65_amplicons"
 READS="$ROOT/data/sanger/seq_kansasii"
 source "$(conda info --base)/etc/profile.d/conda.sh"
@@ -19,8 +19,8 @@ conda activate env_mlsa
 python "$REPO_ROOT/scripts/05_make_iupac_hsp65_references.py" 1 "$OUT/refs_k1"
 python "$REPO_ROOT/scripts/05_make_iupac_hsp65_references.py" 2 "$OUT/refs_k2"
 
-RUN="$REPO_ROOT/main3_reference_alignment/run_reference_alignment.py"
-# B: IUPAC-aware scoring on the 72 genome amplicons (read-side effect only; A = main3_reference_alignment_hsp65_amplicons)
+RUN="$REPO_ROOT/sanger_refalign/run_sanger_refalign.py"
+# B: IUPAC-aware scoring on the 72 genome amplicons (read-side effect only; A = sanger_refalign_hsp65_amplicons)
 python "$RUN" --iupac --ref-dir "$AMPL" --out "$OUT/B_amplicons_iupac" "$READS"
 # C, D: IUPAC-aware scoring against the species consensus references
 python "$RUN" --iupac --ref-dir "$OUT/refs_k1" --out "$OUT/C_consensus_k1" "$READS"

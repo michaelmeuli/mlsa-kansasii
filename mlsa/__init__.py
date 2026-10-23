@@ -9,7 +9,7 @@ SPECIES = [
 ]
 
 # A fixed, consistent categorical color per species, reused by every figure in
-# this repo (main1 and main2) so plots stay comparable across the pipeline.
+# this repo (locus_discovery and sanger_mlsa) so plots stay comparable across the pipeline.
 SPECIES_COLORS = {
     "kansasii": "#1b9e77",
     "persicum": "#d95f02",

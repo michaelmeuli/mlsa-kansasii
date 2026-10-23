@@ -34,7 +34,7 @@ gaps), which suggests reference-guided scaffolding.
 - The three are near-clonal: K14/K19 ANI 100.0%, K4 vs K14/K19 99.9%. For
   purposes of independent evidence they count as one lineage.
 
-### Marker genes (from `main1_locus_discovery` alignments)
+### Marker genes (from `locus_discovery` alignments)
 
 | Locus | Distance to type strain | Nearest species |
 |---|---|---|
@@ -95,7 +95,7 @@ not affect the ANI conclusion.
 - Treat the full-reference runs as primary and the `*_excluded` runs as a
   sensitivity analysis.
 - hsp65 calls 11 of the 127 isolates persicum, each with kansasii as the
-  second-closest species. With all genomes, all 11 are ambiguous: main2's
+  second-closest species. With all genomes, all 11 are ambiguous: sanger_mlsa's
   tolerance is the larger of the two species' diversity, which here is
   kansasii's 0.025 from these three genomes. Some of the 11 could be
   atypical kansasii like these; only gyrA would tell them apart. Not checked.
@@ -178,7 +178,7 @@ sequences (H1 to H7):
   separates 12 of 21 species pairs. None of the pairs involving kansasii are
   separated.
 
-### Isolates (main2, Sanger reads)
+### Isolates (sanger_mlsa, Sanger reads)
 
 The Sanger reads cover only part of the gene. 59 of 65 isolates are exactly
 the same distance from two species: kansasii/ostraviense (41),
@@ -225,7 +225,7 @@ Why adding 16S makes things worse:
    GCF_002086895.1). In the `_excluded` run: 0.0046 (0.0005 without it).
 
 So 16S adds nothing to hsp65 for species identification in this complex.
-hsp65 alone (and gyrA, main1's winning locus) is the better basis. A
+hsp65 alone (and gyrA, locus_discovery's winning locus) is the better basis. A
 combined analysis only makes sense after GCF_002086895.1 is resolved, and
 even then 16S can at best confirm the broad two-group split.
 
@@ -236,10 +236,10 @@ same thing. Three isolates (Mkan329-081, -097, -179) used to get
 `nearest_species = gastri`, but their hsp65 reads are 0.20-0.23 from every
 reference, while the complex spans at most 0.054 at hsp65. They are not
 kansasii-complex hsp65 (probably another organism's groEL or a mixed read),
-and gastri was only the least bad match, 0.003 ahead of kansasii. main2 now
+and gastri was only the least bad match, 0.003 ahead of kansasii. sanger_mlsa now
 reports such reads as NA (README, step 4). In the `_excluded` run, 081 and
 097 had even been marked `unambiguous`. Both 081 and 097 have a later
-re-extraction or repeat read inside the complex, which main2 now picks
+re-extraction or repeat read inside the complex, which sanger_mlsa now picks
 instead (README, step 1): 081 is pseudokansasii (0.005), 097 is kansasii
 (0.005). 179 has no good read and stays NA.
 
@@ -247,7 +247,7 @@ instead (README, step 1): 081 is pseudokansasii (0.005), 097 is kansasii
 
 The 39 typical kansasii genomes and the 2 gastri genomes differ consistently
 at only 7 positions of the 441 bp TB-11/TB-12w amplicon (about 1.6%;
-positions in `main2_sanger_differentiation/alignments/hsp65.aligned.fasta`):
+positions in `sanger_mlsa/alignments/hsp65.aligned.fasta`):
 
 | Position | 129 | 159 | 177 | 222 | 314 | 335 | 395 |
 |---|---|---|---|---|---|---|---|
@@ -349,7 +349,7 @@ cd genome_identity_check
 sbatch submit_genome_identity_check.sbatch
 ```
 
-`run_genome_identity_check.py` lists the same 72 GTDB r232 genomes main1
+`run_genome_identity_check.py` lists the same 72 GTDB r232 genomes locus_discovery
 uses (`mlsa.loci.discover_genomes`) and runs `skani triangle -E -s 70`
 (skani 0.3.2 from the GTDB-Tk container, `mlsa.align.run_skani_triangle`).
 It writes to `output/mlsa/genome_identity_check/`:

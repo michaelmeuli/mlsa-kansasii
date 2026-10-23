@@ -12,10 +12,10 @@ source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate env_mlsa
 
 # every linked Sanger read (about 3 s per read)
-python "$REPO_ROOT/main3_reference_alignment/run_reference_alignment.py" \
+python "$REPO_ROOT/sanger_refalign/run_sanger_refalign.py" \
     /shares/sander.imm.uzh/MM/kansasii/data/sanger/seq_kansasii
 
 # provenance (see kansasii-docs/docs/PROVENANCE.md)
 bash /shares/sander.imm.uzh/MM/kansasii/repos/kansasii-docs/bin/write_manifest.sh \
-  "/shares/sander.imm.uzh/MM/kansasii/output/mlsa/main3_reference_alignment" \
-  /shares/sander.imm.uzh/MM/kansasii/repos/mlsa-kansasii submit_reference_alignment.sbatch /shares/sander.imm.uzh/MM/kansasii/data/sanger/seq_kansasii
+  "/shares/sander.imm.uzh/MM/kansasii/output/mlsa/sanger_refalign" \
+  /shares/sander.imm.uzh/MM/kansasii/repos/mlsa-kansasii submit_sanger_refalign.sbatch /shares/sander.imm.uzh/MM/kansasii/data/sanger/seq_kansasii

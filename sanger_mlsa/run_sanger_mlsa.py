@@ -3,7 +3,7 @@
 the TNR isolates in data/imm/screening_map_link.csv (symlinked into
 data/sanger/seq_kansasii by scripts/03_link_sanger_kansasii.sh), assess how far
 species-level differentiation actually gets today, and which additional
-locus/loci (from main1_locus_discovery's candidate set) would need to be
+locus/loci (from locus_discovery's candidate set) would need to be
 sequenced to resolve the isolates that remain ambiguous.
 
 Isolates are keyed by PROBENNUMMER: reads under any of an isolate's TNRs
@@ -13,18 +13,18 @@ best (longest, then highest quality) read that lies inside the complex is
 taken as that isolate's representative sequence (no fwd/rev consensus
 assembly in this first pass); see pick_representative.
 Representative sequences are oriented against a reference sequence, aligned
-together with the 7-species reference sequences from main1 (reused from
-output/mlsa/main1_locus_discovery/alignments/*.raw.fasta when available, else
+together with the 7-species reference sequences from locus_discovery (reused from
+output/mlsa/locus_discovery/alignments/*.raw.fasta when available, else
 re-extracted directly), and each isolate is classified as unambiguously
 nested in one species' cluster, or ambiguous, using the same DNA-barcoding
-gap logic as main1: the gap between the isolate's nearest and second-nearest
+gap logic as locus_discovery: the gap between the isolate's nearest and second-nearest
 species must exceed the larger within-species diversity of the two among
 the references. Isolates further from every reference than the two most
 distant references are from each other are outside the complex and get NA.
 
-Run via submit_sanger_differentiation.sbatch (requires env_mlsa active and
-the mafft Singularity container pulled). Best run after main1, but falls
-back to extracting reference sequences itself if main1's output is missing.
+Run via submit_sanger_mlsa.sbatch (requires env_mlsa active and
+the mafft Singularity container pulled). Best run after locus_discovery, but falls
+back to extracting reference sequences itself if locus_discovery's output is missing.
 """
 from __future__ import annotations
 
@@ -60,12 +60,12 @@ from mlsa.loci import discover_genomes, extract_16s, extract_hsp65  # noqa: E402
 from mlsa.plotting import plot_alignment_heatmap, plot_tree  # noqa: E402
 from mlsa.sanger_io import classify_locus, extract_tnr, load_trimmed_ab1_mixed  # noqa: E402
 
-RESULTS = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii") + "/output") / "mlsa" / "main2_sanger_differentiation"
-MAIN1_RESULTS = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii") + "/output") / "mlsa" / "main1_locus_discovery"
+RESULTS = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii") + "/output") / "mlsa" / "sanger_mlsa"
+LOCUS_DISCOVERY_RESULTS = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii") + "/output") / "mlsa" / "locus_discovery"
 LOCI = ["hsp65", "16S"]
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-log = logging.getLogger("sanger_differentiation")
+log = logging.getLogger("sanger_mlsa")
 
 
 def load_tnr_to_probennummer() -> dict[str, str]:
@@ -140,16 +140,16 @@ def pick_representative(paths: list[Path], refs: dict[str, str],
             "max_mixed_fraction": max(mixed_all) if mixed_all else None}
 
 
-def load_reference_sequences(locus: str, main1_results: Path = MAIN1_RESULTS,
+def load_reference_sequences(locus: str, locus_discovery_results: Path = LOCUS_DISCOVERY_RESULTS,
                               exclude_accessions: frozenset[str] = frozenset()) -> dict[str, str]:
-    """Reuse main1's already-extracted reference sequences when available;
-    otherwise extract them directly so main2 can run standalone."""
-    raw_fasta = main1_results / "alignments" / f"{locus}.raw.fasta"
+    """Reuse locus_discovery's already-extracted reference sequences when available;
+    otherwise extract them directly so sanger_mlsa can run standalone."""
+    raw_fasta = locus_discovery_results / "alignments" / f"{locus}.raw.fasta"
     if raw_fasta.exists():
-        log.info("Reusing main1 reference sequences for %s from %s", locus, raw_fasta)
+        log.info("Reusing locus_discovery reference sequences for %s from %s", locus, raw_fasta)
         return read_fasta(raw_fasta)
 
-    log.warning("main1 output for %s not found at %s; extracting references directly", locus, raw_fasta)
+    log.warning("locus_discovery output for %s not found at %s; extracting references directly", locus, raw_fasta)
     genomes = [g for g in discover_genomes(GTDB_MLSA_ROOT, SPECIES)
                if g.accession not in exclude_accessions]
     extractor = extract_hsp65 if locus == "hsp65" else extract_16s
@@ -191,7 +191,7 @@ def classify_isolate(isolate_name: str, dist: pd.DataFrame, species_of: dict[str
                       intra_max: dict[str, float], max_dist: float) -> dict[str, Any] | None:
     """Nearest and second-nearest species by the isolate's distance to each
     species' closest reference. The tolerance is the larger within-species
-    diversity of the two species, as in main1's barcoding-gap check
+    diversity of the two species, as in locus_discovery's barcoding-gap check
     (mlsa.align.barcoding_gap_check). References whose distance is NaN (no
     overlapping, gap-free columns with the isolate's read) are skipped.
 
@@ -230,7 +230,7 @@ def classify_isolate(isolate_name: str, dist: pd.DataFrame, species_of: dict[str
 
 def recommend_loci(ambiguous_df: pd.DataFrame, pair_sep_path: Path) -> pd.DataFrame:
     if not pair_sep_path.exists():
-        log.warning("main1 pair-separation table not found at %s; skipping locus recommendations", pair_sep_path)
+        log.warning("locus_discovery pair-separation table not found at %s; skipping locus recommendations", pair_sep_path)
         return pd.DataFrame()
     pair_sep = pd.read_csv(pair_sep_path, sep="\t")
     pair_sep = pair_sep[~pair_sep["locus"].isin(LOCI)]
@@ -288,7 +288,7 @@ def run_locus_or_combo(label: str, combined_seqs: dict[str, str], species_of: di
     return df
 
 
-def main(results_dir: Path = RESULTS, main1_results: Path = MAIN1_RESULTS,
+def main(results_dir: Path = RESULTS, locus_discovery_results: Path = LOCUS_DISCOVERY_RESULTS,
          exclude_accessions: Iterable[str] = ()) -> None:
     exclude_accessions = frozenset(exclude_accessions)
     results_dir.mkdir(parents=True, exist_ok=True)
@@ -301,7 +301,7 @@ def main(results_dir: Path = RESULTS, main1_results: Path = MAIN1_RESULTS,
     isolate_seqs: dict[str, dict[str, str]] = {}
     read_rows = []
     for locus in LOCI:
-        refs = load_reference_sequences(locus, main1_results, exclude_accessions)
+        refs = load_reference_sequences(locus, locus_discovery_results, exclude_accessions)
         max_ref_dist = reference_max_distance(refs, results_dir / "alignments" / f"{locus}.refs")
         log.info("%s: reads further than %.4f from every reference are skipped when another read is inside",
                  locus, max_ref_dist)
@@ -388,7 +388,7 @@ def main(results_dir: Path = RESULTS, main1_results: Path = MAIN1_RESULTS,
 
     if len(df_both):
         ambiguous_both = df_both[df_both["unambiguous"].eq(False)]
-        recs = recommend_loci(ambiguous_both, main1_results / "single_locus_pair_separation.tsv")
+        recs = recommend_loci(ambiguous_both, locus_discovery_results / "single_locus_pair_separation.tsv")
         if len(recs):
             recs.to_csv(results_dir / "recommended_additional_loci.tsv", sep="\t", index=False)
             top = recs["recommended_locus"].value_counts()

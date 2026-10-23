@@ -8,10 +8,10 @@ reference with the fewest differences over the read is the closest species. See
 mlsa/refalign.py for the method and README.md for when this is (not) enough.
 
 Usage:
-  python main3_reference_alignment/run_reference_alignment.py READ [READ ...]
+  python sanger_refalign/run_sanger_refalign.py READ [READ ...]
   READ = .ab1 trace (quality-trimmed here), .fasta/.fa read (used as is), or a directory of those.
 
-Writes to OUTPUT (default output/mlsa/main3_reference_alignment/):
+Writes to OUTPUT (default output/mlsa/sanger_refalign/):
   reference_alignment.tsv   one row per read (mixed_fraction: share of mixed peaks in .ab1 reads, informational)
 No PDFs: the per-read alignment PDF is made by sanger-microsynth (sanger_ms/refalign.py), which emails it.
 About 3 s per read on one core, so fine on the login node for a handful of reads; use a
@@ -34,7 +34,7 @@ from mlsa import DATA_ROOT, GTDB_REPRESENTATIVES, SPECIES  # noqa: E402
 from mlsa.refalign import identify_read, load_references  # noqa: E402
 from mlsa.sanger_io import classify_locus, load_trimmed_ab1_mixed  # noqa: E402
 
-OUTPUT = DATA_ROOT.parent / "output" / "mlsa" / "main3_reference_alignment"
+OUTPUT = DATA_ROOT.parent / "output" / "mlsa" / "sanger_refalign"
 
 
 def iter_reads(paths: list[Path]) -> Iterator[tuple[str, str | None, str, float | None]]:

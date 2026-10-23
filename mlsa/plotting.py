@@ -1,5 +1,5 @@
-"""Visualizations shared by main1_locus_discovery and
-main2_sanger_differentiation: an alignment-difference heatmap (shows exactly
+"""Visualizations shared by locus_discovery and
+sanger_mlsa: an alignment-difference heatmap (shows exactly
 where sequences differ) and a species-colored tree image. Both are saved as
 PNG+SVG using one consistent species-color mapping (mlsa.SPECIES_COLORS)
 across the whole repo.

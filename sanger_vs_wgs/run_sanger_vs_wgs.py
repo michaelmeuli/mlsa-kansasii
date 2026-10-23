@@ -5,14 +5,14 @@ whole-genome (GTDB-Tk) species of the same isolates.
 Two questions, both against the WGS species in output/screening_map_results.csv
 (complex species only):
 
-  1. Sanger vs WGS: how often do the existing Sanger hsp65 calls (main2 nearest species,
-     main2_excluded, main3 plain alignment) match the genome species?
+  1. Sanger vs WGS: how often do the existing Sanger hsp65 calls (sanger_mlsa nearest species,
+     sanger_mlsa_excluded, sanger_refalign plain alignment) match the genome species?
   2. Ceiling: extract the hsp65 amplicon in silico from each isolate's own assembly (TB-11/TB-12(w)
-     primers) and classify it with main3's logic. This is what a perfect hsp65 read would say, so
+     primers) and classify it with sanger_refalign's logic. This is what a perfect hsp65 read would say, so
      it separates failed Sanger reads (assay) from the limits of the marker itself.
 
-Needs the outputs of main2 (+ _excluded) and main3. Writes to
-output/mlsa/main4_hsp65_vs_wgs/: sanger_vs_wgs.tsv, insilico_vs_wgs.tsv, SUMMARY.txt.
+Needs the outputs of sanger_mlsa (+ _excluded) and sanger_refalign. Writes to
+output/mlsa/sanger_vs_wgs/: sanger_vs_wgs.tsv, insilico_vs_wgs.tsv, SUMMARY.txt.
 """
 from __future__ import annotations
 
@@ -32,26 +32,26 @@ from Bio import SeqIO  # noqa: E402
 
 OUT_ROOT = DATA_ROOT.parent / "output"
 MLSA = OUT_ROOT / "mlsa"
-OUTPUT = MLSA / "main4_hsp65_vs_wgs"
+OUTPUT = MLSA / "sanger_vs_wgs"
 # per-sample assemblies of all batches (mkan329_transfer_result/genomes only holds the last batch)
 ASSEMBLIES = DATA_ROOT.parent / "runs" / "mkan329" / "assembly" / "results"
 REFERENCE_STRAINS = frozenset(f"Mkan329-{i:03d}" for i in range(126, 134))
 
 
 def stem(read: str) -> str:
-    """Read names in main3 are .ab1 file stems (they may contain dots, so no Path.stem)."""
+    """Read names in sanger_refalign are .ab1 file stems (they may contain dots, so no Path.stem)."""
     return read[:-4] if read.endswith(".ab1") else read
 
 
 def sanger_vs_wgs(truth: pd.DataFrame) -> pd.DataFrame:
-    reps = pd.read_csv(MLSA / "main2_sanger_differentiation" / "representative_reads.tsv", sep="\t")
+    reps = pd.read_csv(MLSA / "sanger_mlsa" / "representative_reads.tsv", sep="\t")
     reps = reps[reps["locus"] == "hsp65"].set_index("probennummer")
-    ra = pd.read_csv(MLSA / "main3_reference_alignment" / "reference_alignment.tsv", sep="\t").drop_duplicates("read").set_index("read")
+    ra = pd.read_csv(MLSA / "sanger_refalign" / "reference_alignment.tsv", sep="\t").drop_duplicates("read").set_index("read")
     df = truth[truth["PROBENNUMMER"].isin(reps.index)].copy()
     df["read"] = df["PROBENNUMMER"].map(reps["read"]).map(stem)
     for col in ("status", "closest_species", "closest_identity", "closest_diffs", "margin", "read_bp", "mixed_fraction"):
-        df["main3_" + col] = df["read"].map(ra[col])
-    for tag, d in (("main2", "main2_sanger_differentiation"), ("main2_excl", "main2_sanger_differentiation_excluded")):
+        df["sanger_refalign_" + col] = df["read"].map(ra[col])
+    for tag, d in (("sanger_mlsa", "sanger_mlsa"), ("sanger_mlsa_excl", "sanger_mlsa_excluded")):
         c = pd.read_csv(MLSA / d / "isolate_classification.tsv", sep="\t")
         c = c[c["locus"] == "hsp65"].set_index("probennummer")
         df[tag + "_nearest"] = df["PROBENNUMMER"].map(c["nearest_species"])
@@ -96,14 +96,14 @@ def main() -> None:
 
     lines = [f"WGS complex isolates: {len(truth)} ({(truth['contamination_flag'] != '').sum()} flagged contaminated)",
              f"with a Sanger hsp65 read: {len(sv)}", ""]
-    for tag, call, called in (("main2 (nearest species)", "main2_nearest", sv["main2_nearest"].notna()),
-                              ("main2_excluded (nearest species)", "main2_excl_nearest", sv["main2_excl_nearest"].notna()),
-                              ("main3 (status ok only)", "main3_closest_species", sv["main3_status"] == "ok")):
+    for tag, call, called in (("sanger_mlsa (nearest species)", "sanger_mlsa_nearest", sv["sanger_mlsa_nearest"].notna()),
+                              ("sanger_mlsa_excluded (nearest species)", "sanger_mlsa_excl_nearest", sv["sanger_mlsa_excl_nearest"].notna()),
+                              ("sanger_refalign (status ok only)", "sanger_refalign_closest_species", sv["sanger_refalign_status"] == "ok")):
         d = sv[called]
         lines.append(f"{tag}: {len(d)} called, {(d[call] == d['species']).sum()} match WGS; {len(sv) - len(d)} no call")
     ok = iv[iv["status"] == "ok"] if "status" in iv else iv.iloc[0:0]
     lines += ["", f"in-silico hsp65 from own assembly: {len(iv)} isolates, amplicon found in {(iv['amplicon_bp'] > 0).sum()}",
-              f"  main3 status ok: {len(ok)}, match WGS: {(ok['closest_species'] == ok['wgs_species']).sum()}"]
+              f"  sanger_refalign status ok: {len(ok)}, match WGS: {(ok['closest_species'] == ok['wgs_species']).sum()}"]
     if "status" in iv:
         lines.append("  status counts: " + ", ".join(f"{k} {v}" for k, v in iv["status"].value_counts().items()))
     (OUTPUT / "SUMMARY.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")

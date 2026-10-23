@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-"""Write one IUPAC consensus hsp65 reference per species (main1's alignments/hsp65.aligned.fasta): a column
+"""Write one IUPAC consensus hsp65 reference per species (locus_discovery's alignments/hsp65.aligned.fasta): a column
 with more than one base among the species' genomes becomes the IUPAC code of those bases. Experiment for
-`run_reference_alignment.py --iupac`; the genome-level references have no ambiguity codes.
+`run_sanger_refalign.py --iupac`; the genome-level references have no ambiguity codes.
 
 Usage: python scripts/05_make_iupac_hsp65_references.py MIN_MINOR OUT_DIR [ACCESSION ...]
   MIN_MINOR  a base counts only if at least this many genomes of the species carry it (1 = every polymorphic
@@ -22,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from mlsa.refalign import BASES_IUPAC  # noqa: E402
 
 ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii"))
-SRC = ROOT / "output" / "mlsa" / "main1_locus_discovery" / "alignments" / "hsp65.aligned.fasta"
+SRC = ROOT / "output" / "mlsa" / "locus_discovery" / "alignments" / "hsp65.aligned.fasta"
 
 
 def consensus(seqs: list[str], min_minor: int) -> str:

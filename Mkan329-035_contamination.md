@@ -26,10 +26,10 @@ from the kansasii analyses.**
 |---|---|
 | WGS / GTDB (`species`) | kansasii (ANI 99.66, AF 0.953, ref GCF_000157895.3) |
 | WGS CheckM contamination | **113.37%**, `contamination_flag = contaminated` |
-| main2 hsp65 (Sanger) | ostraviense (dist 0.0053), gastri second (0.0214), unambiguous |
-| main2 16S (Sanger) | kansasii and ostraviense **tied** (0.00113 each), not unambiguous |
-| main2 hsp65+16S | ostraviense |
-| main3 reference alignment (hsp65, 65kDa 5ul read) | ostraviense 99.47% (2 diffs / 374 bp), gastri 97.86% |
+| sanger_mlsa hsp65 (Sanger) | ostraviense (dist 0.0053), gastri second (0.0214), unambiguous |
+| sanger_mlsa 16S (Sanger) | kansasii and ostraviense **tied** (0.00113 each), not unambiguous |
+| sanger_mlsa hsp65+16S | ostraviense |
+| sanger_refalign reference alignment (hsp65, 65kDa 5ul read) | ostraviense 99.47% (2 diffs / 374 bp), gastri 97.86% |
 
 `species_mlsa1`, `species_mlsa2` and `species_ref` in screening_map_results.csv all say ostraviense.
 
@@ -57,16 +57,16 @@ Reading this:
   That locus does not separate kansasii from ostraviense here, so a clean trace says nothing about species.
 - hsp65 is mixed in every read. The fraction runs from 3.4% to 40% between reads of the same culture,
   which suggests either a variable ratio between PCRs or poor reads. The 20.01 5ul read has the best Q (41)
-  and the fewest mixed positions, and it is the representative read picked by main2 and main3. The
+  and the fewest mixed positions, and it is the representative read picked by sanger_mlsa and sanger_refalign. The
   ostraviense call depends on that read. The two later reads are too noisy to call.
 - The 10ul read has no Q>=20 bases at all.
 
 ## Can mixed bases alone exclude an isolate from Sanger identification?
 
 Not by a fixed threshold. `mlsa/sanger_io.py` now has `mixed_peak_fraction` (share of base calls in the
-Mott-trimmed read whose second peak is at least 25% of the primary one), and main2 writes `mixed_fraction` (chosen read)
+Mott-trimmed read whose second peak is at least 25% of the primary one), and sanger_mlsa writes `mixed_fraction` (chosen read)
 and `max_mixed_fraction` (worst usable read) to `representative_reads.tsv`. No flag is applied. For Mkan329-035 the
-best hsp65 read has 2.1% (second read 5.3%, 16S 0.1%), because the two noisiest reads are trimmed below 100 bp and never reach main2.
+best hsp65 read has 2.1% (second read 5.3%, 16S 0.1%), because the two noisiest reads are trimmed below 100 bp and never reach sanger_mlsa.
 Across all 252 hsp65 reads in `data/sanger/seq_kansasii` the median is 1.6%, 25% of reads are at or above 5% and 10% are at or above 18%,
 so the isolate looks ordinary by this measure. The CheckM `contamination_flag` (and the read mapping above) are
 the exclusion signal. The GWAS table already excludes NR 35 (`kansasii-gwas/scripts/01_build_table.py`).

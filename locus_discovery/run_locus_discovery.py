@@ -48,7 +48,7 @@ from mlsa.align import (  # noqa: E402
 from mlsa.loci import CANDIDATE_LOCI, GenomeRecord, discover_genomes, extract_all_loci  # noqa: E402
 from mlsa.plotting import plot_alignment_heatmap, plot_tree  # noqa: E402
 
-RESULTS = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii") + "/output") / "mlsa" / "main1_locus_discovery"
+RESULTS = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii") + "/output") / "mlsa" / "locus_discovery"
 MAX_EXHAUSTIVE_SIZE = 4
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -140,7 +140,7 @@ def evaluate_combo(aligned: dict[str, dict[str, str]], combo: tuple[str, ...],
 def write_single_locus_pair_table(aligned: dict[str, dict[str, str]], usable_loci: list[str],
                                    species_of: dict[str, str], out_path: Path) -> pd.DataFrame:
     """Per-locus, per-species-pair separation detail (used by
-    main2_sanger_differentiation to recommend which single additional locus
+    sanger_mlsa to recommend which single additional locus
     would resolve a given ambiguous species pair among real isolates)."""
     frames = []
     for locus in usable_loci:
