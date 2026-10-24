@@ -16,7 +16,7 @@ from the kansasii analyses.**
   mixed Sanger hsp65 traces, and the read mapping below.
 - **Why exclude it:** a mixed sample has no valid species label, genome, resistance profile or MIC. The assembly joins
   contigs of two species, so SNPs, gene content (including resistance genes) and the tree position of this isolate are not
-  those of one organism. Keeping it would add false variants to the GWAS and a wrongly placed tip to the MLSA tree,
+  those of one organism. Keeping it would add false variants to the association analyses and a wrongly placed tip to the MLSA tree,
   and its MIC reflects both populations. Excluding it costs one isolate, and the reason for excluding it
   (contamination) does not depend on the phenotype.
 
@@ -69,7 +69,7 @@ and `max_mixed_fraction` (worst usable read) to `representative_reads.tsv`. No f
 best hsp65 read has 2.1% (second read 5.3%, 16S 0.1%), because the two noisiest reads are trimmed below 100 bp and never reach sanger_mlsa.
 Across all 252 hsp65 reads in `data/sanger/seq_kansasii` the median is 1.6%, 25% of reads are at or above 5% and 10% are at or above 18%,
 so the isolate looks ordinary by this measure. The CheckM `contamination_flag` (and the read mapping above) are
-the exclusion signal. The GWAS table already excludes NR 35 (`kansasii-gwas/scripts/01_build_table.py`).
+the exclusion signal.
 
 ## Ways to detect contamination in Sanger data
 
@@ -117,7 +117,7 @@ Caveats: this uses one reference per species. The mix ratio is an estimate from 
 
 ## Recommendation
 
-1. **Exclude Mkan329-035** from the kansasii GWAS, the MLSA tree and the MIC association analyses. Reason to give if
+1. **Exclude Mkan329-035** from the MLSA tree and the MIC association analyses. Reason to give if
    an exclusion list is kept: "mixed culture, *M. kansasii* + *M. ostraviense* (CheckM 113%, read mapping 31%/69%)".
    Do not use either species call as the isolate's label. In `isolate_classification`, mark it as contaminated and do not use the ostraviense call.
 2. **Optional rescue:** re-streak, pick single colonies, and re-sequence (WGS and hsp65 in both directions).
