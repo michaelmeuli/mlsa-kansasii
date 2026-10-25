@@ -28,7 +28,7 @@ done
 
 SPECIES_PATTERN='s__Mycobacterium (kansasii|persicum|pseudokansasii|innocens|attenuatum|ostraviense|gastri)'
 METADATA="bac120_metadata_r${RELEASE}.tsv"
-ACCESSIONS_OUT="$DATA_DIR/kansasii-complex-mlsa-accessions.txt"
+ACCESSIONS_OUT="$OUT_DIR/kansasii-complex-mlsa-accessions.txt"
 
 # Column indices are looked up from the header at runtime so this stays
 # robust to GTDB reordering columns between releases.
@@ -55,5 +55,3 @@ n_acc=$(wc -l < "$ACCESSIONS_OUT")
 echo "Wrote $n_acc kansasii-complex accessions to $ACCESSIONS_OUT"
 echo "Per-species counts:"
 cut -f2 "$ACCESSIONS_OUT" | sort | uniq -c
-
-cp "$ACCESSIONS_OUT" "$OUT_DIR/"
