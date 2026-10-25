@@ -50,7 +50,7 @@ GTDB genomes downloaded by immensekansasii step 1. Steps in dependency order; "N
 
 | # | Stage | Command | Needs | Writes |
 |---|---|---|---|---|
-| 1 | inputs | `scripts/01_download_filter_gtdb.sh` | - | accession list of the 7 species (`data/lit/gtdb/gtdb232/`) |
+| 1 | inputs | `scripts/01_download_filter_gtdb.sh` | - | accession list of the 7 species (`data/immensekansasii/gtdb/gtdb232/`) |
 | 2 | inputs | `scripts/02_link_gtdb_kansasii_complex.sh` | 1, genomes | `data/gtdb_genomes/.../mlsa-kansasii/<species>/` |
 | 3 | inputs | `scripts/03_link_sanger_kansasii.sh` | link table | `data/sanger/seq_kansasii/` |
 | 4 | A | `sbatch locus_discovery/submit_locus_discovery.sbatch` (+ `locus_discovery_excluded`) | 2 | `output/mlsa/locus_discovery*` |

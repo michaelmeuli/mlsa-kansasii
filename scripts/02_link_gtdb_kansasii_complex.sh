@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-ACCESSIONS_OUT=/shares/sander.imm.uzh/MM/kansasii/data/lit/gtdb/gtdb232/kansasii-complex-mlsa-accessions.txt
+ACCESSIONS_OUT=/shares/sander.imm.uzh/MM/kansasii/data/immensekansasii/gtdb/gtdb232/kansasii-complex-mlsa-accessions.txt
 
 if [ ! -f "$ACCESSIONS_OUT" ]; then
   echo "ERROR: $ACCESSIONS_OUT not found; run scripts/01_download_filter_gtdb.sh first" >&2

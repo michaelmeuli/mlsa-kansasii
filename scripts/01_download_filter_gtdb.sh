@@ -10,7 +10,7 @@ set -euo pipefail
 RELEASE="${1:-232}"
 
 ROOT=/shares/sander.imm.uzh/MM/kansasii
-DATA_DIR="$ROOT/data/lit/gtdb/gtdb$RELEASE"
+DATA_DIR="$ROOT/data/immensekansasii/gtdb/gtdb$RELEASE"
 OUT_DIR="$ROOT/output/immensekansasii/gtdb/gtdb$RELEASE"
 
 mkdir -p "$DATA_DIR" "$OUT_DIR"
