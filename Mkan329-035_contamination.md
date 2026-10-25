@@ -4,16 +4,17 @@ Checked 2026-10-05. TNR taken from `output/screening_map_results.csv`.
 
 ## Summary
 
-**Mkan329-035 is a mixed culture of *M. kansasii* (about 30%) and *M. ostraviense* (about 70%). It can be excluded
-from the kansasii analyses.**
+**Mkan329-035 is most likely a mixed culture of *M. kansasii* (about 30%) and *M. ostraviense* (about 70%). It can be
+excluded from the kansasii analyses.** This rests on sequence data only; single-colony re-isolation has not been done
+(see "Alternative explanations" below).
 
-- **Both species calls are correct.** The two methods read different parts of the same mixed DNA.
+- **Both species calls are consistent with the mixture.** The two methods read different parts of the same mixed DNA.
   - WGS/GTDB says *kansasii* because the genome contains a complete *M. kansasii* genome (58x depth, 97.6% covered).
   - Sanger hsp65 / MLSA says *ostraviense* because most of the template in the PCR was *M. ostraviense* (139x depth, 96.7% covered).
     The best hsp65 read matches ostraviense at 99.47%.
-  - Neither method made an error. The sample is not a single species, so there is no single correct answer.
-- **The mixture is independently confirmed** by CheckM (113.37% contamination), a 13.3 Mb assembly (about twice one genome),
-  mixed Sanger hsp65 traces, and the read mapping below.
+  - Neither method needs to have made an error. If the sample is not a single species, there is no single correct answer.
+- **Four independent lines of evidence agree with a mixture:** CheckM (113.37% contamination), a 13.3 Mb assembly
+  (about twice one genome), mixed Sanger hsp65 traces, and the read mapping below.
 - **Why exclude it:** a mixed sample has no valid species label, genome, resistance profile or MIC. The assembly joins
   contigs of two species, so SNPs, gene content (including resistance genes) and the tree position of this isolate are not
   those of one organism. Keeping it would add false variants to the association analyses and a wrongly placed tip to the MLSA tree,
@@ -33,7 +34,7 @@ from the kansasii analyses.**
 
 `species_mlsa1`, `species_mlsa2` and `species_ref` in screening_map_results.csv all say ostraviense.
 
-**Conclusion:** the contamination flag, the Sanger traces and the read mapping together show that the culture
+**Conclusion:** the contamination flag, the Sanger traces and the read mapping together indicate that the sample
 contains both species. The two calls therefore do not conflict (see Summary). The 16S read cannot break the
 tie between the two species, so the Sanger ostraviense call rests on hsp65, which is from the dominant component.
 
@@ -84,15 +85,13 @@ the exclusion signal.
 5. **BLAST margin.** A small gap between the top two species means the locus does not resolve them
    (as the 16S tie here).
 6. **Neighbours and controls.** Look for an identical sequence in a nearby well or run, and check the no-template control.
-7. **WGS.** CheckM contamination, Kraken2 read classification or mapping to both reference species
+7. **WGS.** CheckM contamination or mapping to both reference species
    (the route that already caught this isolate).
 
 
 ## Read mapping to both references (2026-10-05)
 
-Kraken2 could not be used: the shared `kraken_standard_db/hash.k2d` is truncated (68.64 GB on disk,
-71.38 GB required by its header), so both attempts (jobs 7031513, 7032204) aborted. Instead the
-Illumina reads (`Mkan329-035_r1/r2`) were mapped with bwa-mem to one combined reference of
+The Illumina reads (`Mkan329-035_r1/r2`) were mapped with bwa-mem to one combined reference of
 *M. kansasii* GCF_000157895.3 and *M. ostraviense* GCF_002705925.1 (job 7033025, files in
 `output/mapping_Mkan329-035/`). Only primary reads with MAPQ >= 20 are counted, i.e. reads that tell the two genomes apart.
 
@@ -110,17 +109,30 @@ length with almost no mismatches. A single isolate would give few reads on the w
 mismatches, because these species differ by several percent in ANI. The depths suggest roughly 30% kansasii and
 70% ostraviense, which matches the 13.3 Mb assembly (about twice the size of one genome), the
 CheckM contamination of 113% and the mixed hsp65 traces. The Sanger hsp65 call (ostraviense) matches the
-dominant component, and GTDB's kansasii call picks up the minor one. So neither call is wrong, and this
-is a mixed culture of *M. kansasii* and *M. ostraviense*.
+dominant component, and GTDB's kansasii call picks up the minor one. So neither call needs to be wrong, and the
+data are consistent with a mixed culture of *M. kansasii* and *M. ostraviense*.
 
 Caveats: this uses one reference per species. The mix ratio is an estimate from depth, not a measured fraction of cells.
+
+### Alternative explanations
+
+- **A new species or hybrid** is unlikely but is not excluded by an explicit test. A single novel genome would have one
+  depth across its length and would not cover two reference genomes at about 97% breadth with <1 mismatch per read, since the
+  species differ by several percent in ANI. This is an argument from the numbers above, not a measurement (no
+  ANI or core-genome analysis of separated contigs was done).
+- **Cross-contamination** (library prep, sequencing run, or the Sanger PCR) would also give two organisms in the data
+  without a mixed culture in the strict sense. Nothing here separates the two. Checking neighbouring isolates and
+  the no-template control (see Recommendation 3) is the only handle.
+- **Decisive test:** single colonies from a re-streak, each sequenced (WGS or hsp65 in both directions). Two species recovered
+  from separate colonies would settle it. Until then, "mixed culture" is the best-supported interpretation, not proven.
 
 ## Recommendation
 
 1. **Exclude Mkan329-035** from the MLSA tree and the MIC association analyses. Reason to give if
-   an exclusion list is kept: "mixed culture, *M. kansasii* + *M. ostraviense* (CheckM 113%, read mapping 31%/69%)".
+   an exclusion list is kept: "probable mixed culture, *M. kansasii* + *M. ostraviense* (CheckM 113%, read mapping 31%/69%)".
    Do not use either species call as the isolate's label. In `isolate_classification`, mark it as contaminated and do not use the ostraviense call.
-2. **Optional rescue:** re-streak, pick single colonies, and re-sequence (WGS and hsp65 in both directions).
-   A split-by-mapping reassembly is possible, but a single-colony genome is more reliable.
+2. **Optional rescue and confirmation:** re-streak, pick single colonies, and re-sequence (WGS and hsp65 in both directions).
+   This is also the decisive test for mixed culture vs. novel species. A split-by-mapping reassembly is possible,
+   but a single-colony genome is more reliable.
 3. **Check neighbours:** other isolates from the same plate or run (check `contamination_flag` in
    `screening_map_results.csv`) may have the same issue.
