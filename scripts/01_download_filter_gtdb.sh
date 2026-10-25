@@ -3,15 +3,15 @@
 # Download the GTDB bac120 metadata/taxonomy release and filter it down to
 # the M. kansasii species complex.
 #
-# Usage: 01_download_filter_gtdb.sh [release]   (default release: 232)
+# Usage: 01_download_filter_gtdb.sh [release]   (default GTDB_RELEASE of kansasii_paths.sh, 232)
 
 set -euo pipefail
+source "${KANSASII_ROOT:-/shares/sander.imm.uzh/MM/kansasii}/repos/kansasii-docs/templates/kansasii_paths.sh"
 
-RELEASE="${1:-232}"
+RELEASE="${1:-$GTDB_RELEASE}"
 
-ROOT=/shares/sander.imm.uzh/MM/kansasii
-DATA_DIR="$ROOT/data/immensekansasii/gtdb/gtdb$RELEASE"
-OUT_DIR="$ROOT/output/immensekansasii/gtdb/gtdb$RELEASE"
+DATA_DIR="$DATA/immensekansasii/gtdb/gtdb$RELEASE"   # GTDB_METADATA_DIR for the default release
+OUT_DIR="$OUTPUT_ROOT/immensekansasii/gtdb/gtdb$RELEASE"   # GTDB_ACCESSIONS_DIR
 
 mkdir -p "$DATA_DIR" "$OUT_DIR"
 cd "$DATA_DIR"

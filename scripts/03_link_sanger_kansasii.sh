@@ -11,13 +11,24 @@
 # re-basecall from the .ab1 trace instead.
 #
 # Idempotent: safe to re-run (uses ln -sfn).
+#
+# Usage: 03_link_sanger_kansasii.sh [--sanger-root DIR] [--link-dir DIR] [--screening-map FILE]
+#   defaults: DATA/sanger/seq_mol_routine, SANGER_LINK_DIR, SCREENING_MAP_LINK
 
 set -euo pipefail
+source "${KANSASII_ROOT:-/shares/sander.imm.uzh/MM/kansasii}/repos/kansasii-docs/templates/kansasii_paths.sh"
 
-ROOT=/shares/sander.imm.uzh/MM/kansasii
-SANGER_ROOT="$ROOT/data/sanger/seq_mol_routine"
-LINK_DIR="$ROOT/data/sanger/seq_kansasii"
-SCREENING_MAP="$ROOT/data/imm/screening_map_link.csv"
+SANGER_ROOT="$DATA/sanger/seq_mol_routine"
+LINK_DIR="$SANGER_LINK_DIR"
+SCREENING_MAP="$SCREENING_MAP_LINK"
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --sanger-root) SANGER_ROOT=$2; shift 2 ;;
+    --link-dir) LINK_DIR=$2; shift 2 ;;
+    --screening-map) SCREENING_MAP=$2; shift 2 ;;
+    *) echo "unknown option $1" >&2; exit 1 ;;
+  esac
+done
 
 mkdir -p "$LINK_DIR"
 

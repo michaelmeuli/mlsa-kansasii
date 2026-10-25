@@ -16,7 +16,7 @@ import numpy as np
 from matplotlib.colors import ListedColormap
 from matplotlib.patches import Patch
 
-from . import SPECIES_COLORS
+from .kansasii_paths import SPECIES_COLORS
 
 _MATCH, _MISMATCH, _GAP = 0, 1, 2
 _HEATMAP_CMAP = ListedColormap(["#f7f7f7", "#b2182b", "#999999"])

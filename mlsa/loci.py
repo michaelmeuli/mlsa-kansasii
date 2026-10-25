@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Iterable, Iterator
 from Bio import SeqIO
 from Bio.Seq import Seq
 
+from .kansasii_paths import GTDB_COMPLEX_GENOMES
 from .protocols import get_hsp65_primers
 
 if TYPE_CHECKING:
@@ -158,9 +159,8 @@ def _full_length_16s(genome: GenomeRecord) -> list[tuple[str, int, int, str, str
 def _type_strain_16s_kmers() -> set[str]:
     global _type_strain_kmers
     if _type_strain_kmers is None:
-        from . import GTDB_MLSA_ROOT
         species, accession = TYPE_STRAIN
-        sp_dir = GTDB_MLSA_ROOT / species
+        sp_dir = GTDB_COMPLEX_GENOMES / species
         ref = GenomeRecord(accession, species, sp_dir / f"{accession}.fna", sp_dir / f"{accession}.gff")
         copies = _full_length_16s(ref)
         if len(copies) != 1:

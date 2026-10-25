@@ -16,15 +16,11 @@ reads regardless of exactly which primers were used for a given read.
 """
 from __future__ import annotations
 
-import os
 import re
 import zipfile
 from pathlib import Path
 
-HSP65_PROTOCOL = Path(
-    os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii") + "/data/protocols/"
-    "32.43505-4-Mykobakterien NTM 65kDa.docx"
-)
+from .kansasii_paths import HSP65_PROTOCOL
 
 # Confirmed by reading 32.43505-4 (Telenti et al. 1993, J Clin Microbiol
 # 31:175-178): routine primer pair is TB-11 / TB-12w (fallback TB-12 if

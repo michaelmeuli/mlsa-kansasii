@@ -4,10 +4,7 @@
 strict = true
 python_version = "3.11"
 explicit_package_bases = true
-files = ["mlsa", "locus_discovery", "sanger_mlsa", "sanger_refalign", "genome_identity_check",
-         "locus_discovery_excluded", "sanger_mlsa_excluded"]
-# the *_excluded wrappers import their sibling runner via a sys.path hack
-mypy_path = "locus_discovery:sanger_mlsa"
+files = ["mlsa", "scripts"]
 # Biopython ships py.typed but leaves many functions unannotated.
 untyped_calls_exclude = ["Bio"]
 

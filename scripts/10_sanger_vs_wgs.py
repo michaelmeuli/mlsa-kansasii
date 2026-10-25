@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Main program 4: is hsp65 alone enough? Benchmark hsp65 species calls against the
+"""Is hsp65 alone enough? Benchmark hsp65 species calls against the
 whole-genome (GTDB-Tk) species of the same isolates.
 
 Two questions, both against the WGS species in output/screening_map_results.csv
@@ -11,11 +11,12 @@ Two questions, both against the WGS species in output/screening_map_results.csv
      primers) and classify it with sanger_refalign's logic. This is what a perfect hsp65 read would say, so
      it separates failed Sanger reads (assay) from the limits of the marker itself.
 
-Needs the outputs of sanger_mlsa (+ _excluded) and sanger_refalign. Writes to
+Needs the outputs of 08_sanger_mlsa (+ _excluded) and 09_sanger_refalign. Writes to
 output/mlsa/sanger_vs_wgs/: sanger_vs_wgs.tsv, insilico_vs_wgs.tsv, SUMMARY.txt.
 """
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -24,18 +25,21 @@ sys.path.insert(0, str(REPO_ROOT))
 
 import pandas as pd  # noqa: E402
 
-from mlsa import DATA_ROOT, GTDB_REPRESENTATIVES, SPECIES  # noqa: E402
+from mlsa.kansasii_paths import (  # noqa: E402
+    ASSEMBLIES,
+    GTDB_REPRESENTATIVES,
+    OUTPUT_ROOT,
+    REFERENCE_STRAINS,
+    SCREENING_MAP_RESULTS,
+    SPECIES,
+)
 from mlsa.loci import in_silico_pcr  # noqa: E402
 from mlsa.protocols import get_hsp65_primers  # noqa: E402
 from mlsa.refalign import identify_read, load_references  # noqa: E402
 from Bio import SeqIO  # noqa: E402
 
-OUT_ROOT = DATA_ROOT.parent / "output"
-MLSA = OUT_ROOT / "mlsa"
+MLSA = OUTPUT_ROOT / "mlsa"
 OUTPUT = MLSA / "sanger_vs_wgs"
-# per-sample assemblies of all batches (mkan329_transfer_result/genomes only holds the last batch)
-ASSEMBLIES = DATA_ROOT.parent / "runs" / "mkan329" / "assembly" / "results"
-REFERENCE_STRAINS = frozenset(f"Mkan329-{i:03d}" for i in range(126, 134))
 
 
 def stem(read: str) -> str:
@@ -43,28 +47,28 @@ def stem(read: str) -> str:
     return read[:-4] if read.endswith(".ab1") else read
 
 
-def sanger_vs_wgs(truth: pd.DataFrame) -> pd.DataFrame:
-    reps = pd.read_csv(MLSA / "sanger_mlsa" / "representative_reads.tsv", sep="\t")
+def sanger_vs_wgs(truth: pd.DataFrame, mlsa: Path) -> pd.DataFrame:
+    reps = pd.read_csv(mlsa / "sanger_mlsa" / "representative_reads.tsv", sep="\t")
     reps = reps[reps["locus"] == "hsp65"].set_index("probennummer")
-    ra = pd.read_csv(MLSA / "sanger_refalign" / "reference_alignment.tsv", sep="\t").drop_duplicates("read").set_index("read")
+    ra = pd.read_csv(mlsa / "sanger_refalign" / "reference_alignment.tsv", sep="\t").drop_duplicates("read").set_index("read")
     df = truth[truth["PROBENNUMMER"].isin(reps.index)].copy()
     df["read"] = df["PROBENNUMMER"].map(reps["read"]).map(stem)
     for col in ("status", "closest_species", "closest_identity", "closest_diffs", "margin", "read_bp", "mixed_fraction"):
         df["sanger_refalign_" + col] = df["read"].map(ra[col])
     for tag, d in (("sanger_mlsa", "sanger_mlsa"), ("sanger_mlsa_excl", "sanger_mlsa_excluded")):
-        c = pd.read_csv(MLSA / d / "isolate_classification.tsv", sep="\t")
+        c = pd.read_csv(mlsa / d / "isolate_classification.tsv", sep="\t")
         c = c[c["locus"] == "hsp65"].set_index("probennummer")
         df[tag + "_nearest"] = df["PROBENNUMMER"].map(c["nearest_species"])
         df[tag + "_unambiguous"] = df["PROBENNUMMER"].map(c["unambiguous"])
     return df
 
 
-def insilico_vs_wgs(truth: pd.DataFrame) -> pd.DataFrame:
-    refs = load_references(GTDB_REPRESENTATIVES, SPECIES)
+def insilico_vs_wgs(truth: pd.DataFrame, gtdb_representatives: Path, assemblies: Path) -> pd.DataFrame:
+    refs = load_references(gtdb_representatives, SPECIES)
     fwd, rev_options = get_hsp65_primers()
     rows = []
     for _, t in truth.iterrows():
-        f = ASSEMBLIES / t["PROBENNUMMER"] / "1_unicycler" / f"{t['PROBENNUMMER']}.fasta"
+        f = assemblies / t["PROBENNUMMER"] / "1_unicycler" / f"{t['PROBENNUMMER']}.fasta"
         if not f.exists():
             continue
         contigs = {r.id: str(r.seq) for r in SeqIO.parse(f, "fasta")}
@@ -85,14 +89,22 @@ def insilico_vs_wgs(truth: pd.DataFrame) -> pd.DataFrame:
 
 
 def main() -> None:
-    OUTPUT.mkdir(parents=True, exist_ok=True)
-    s = pd.read_csv(DATA_ROOT / "imm" / "screening_map_results.csv", dtype=str).fillna("")
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--gtdb-representatives", type=Path, default=GTDB_REPRESENTATIVES)
+    ap.add_argument("--screening-map-results", type=Path, default=SCREENING_MAP_RESULTS)
+    ap.add_argument("--assemblies", type=Path, default=ASSEMBLIES)
+    ap.add_argument("--mlsa-dir", type=Path, default=MLSA, help="holds the sanger_mlsa*, sanger_refalign outputs")
+    ap.add_argument("--out", type=Path, default=OUTPUT)
+    args = ap.parse_args()
+    out: Path = args.out
+    out.mkdir(parents=True, exist_ok=True)
+    s = pd.read_csv(args.screening_map_results, dtype=str).fillna("")
     # Mkan329-126 to -133 are reference strains, not patient isolates
     truth = s[s["species"].isin(SPECIES) & ~s["PROBENNUMMER"].isin(REFERENCE_STRAINS)]
-    sv = sanger_vs_wgs(truth)
-    sv.to_csv(OUTPUT / "sanger_vs_wgs.tsv", sep="\t", index=False)
-    iv = insilico_vs_wgs(truth)
-    iv.to_csv(OUTPUT / "insilico_vs_wgs.tsv", sep="\t", index=False)
+    sv = sanger_vs_wgs(truth, args.mlsa_dir)
+    sv.to_csv(out / "sanger_vs_wgs.tsv", sep="\t", index=False)
+    iv = insilico_vs_wgs(truth, args.gtdb_representatives, args.assemblies)
+    iv.to_csv(out / "insilico_vs_wgs.tsv", sep="\t", index=False)
 
     lines = [f"WGS complex isolates: {len(truth)} ({(truth['contamination_flag'] != '').sum()} flagged contaminated)",
              f"with a Sanger hsp65 read: {len(sv)}", ""]
@@ -106,7 +118,7 @@ def main() -> None:
               f"  sanger_refalign status ok: {len(ok)}, match WGS: {(ok['closest_species'] == ok['wgs_species']).sum()}"]
     if "status" in iv:
         lines.append("  status counts: " + ", ".join(f"{k} {v}" for k, v in iv["status"].value_counts().items()))
-    (OUTPUT / "SUMMARY.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (out / "SUMMARY.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\n".join(lines))
 
 

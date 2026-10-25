@@ -1,14 +1,14 @@
 #!/usr/bin/env python
-"""Main program 3: species identification of Sanger reads by plain alignment to
-one reference genome per species (the GTDB representatives of the 7 species in
-data/gtdb_genomes/Mycobacteriaceae/kansasii_complex_gtdb_representatives).
+"""Species identification of Sanger reads by plain alignment to
+one reference genome per species (GTDB_REPRESENTATIVES, one per species; --ref-dir selects another
+set, e.g. the 72 hsp65 amplicons of HSP65_AMPLICONS).
 
 No locus extraction and no MLSA: every read is aligned to every genome, and the
 reference with the fewest differences over the read is the closest species. See
 mlsa/refalign.py for the method and README.md for when this is (not) enough.
 
 Usage:
-  python sanger_refalign/run_sanger_refalign.py READ [READ ...]
+  python scripts/09_sanger_refalign.py READ [READ ...]
   READ = .ab1 trace (quality-trimmed here), .fasta/.fa read (used as is), or a directory of those.
 
 Writes to OUTPUT (default output/mlsa/sanger_refalign/):
@@ -30,11 +30,11 @@ sys.path.insert(0, str(REPO_ROOT))
 import pandas as pd  # noqa: E402
 from Bio import SeqIO  # noqa: E402
 
-from mlsa import DATA_ROOT, GTDB_REPRESENTATIVES, SPECIES  # noqa: E402
+from mlsa.kansasii_paths import GTDB_REPRESENTATIVES, OUTPUT_ROOT, SPECIES  # noqa: E402
 from mlsa.refalign import identify_read, load_references  # noqa: E402
 from mlsa.sanger_io import classify_locus, load_trimmed_ab1_mixed  # noqa: E402
 
-OUTPUT = DATA_ROOT.parent / "output" / "mlsa" / "sanger_refalign"
+OUTPUT = OUTPUT_ROOT / "mlsa" / "sanger_refalign"
 
 
 def iter_reads(paths: list[Path]) -> Iterator[tuple[str, str | None, str, float | None]]:
@@ -60,7 +60,8 @@ def iter_reads(paths: list[Path]) -> Iterator[tuple[str, str | None, str, float 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("reads", nargs="+", type=Path)
-    ap.add_argument("--ref-dir", type=Path, default=GTDB_REPRESENTATIVES)
+    ap.add_argument("--ref-dir", "--gtdb-representatives", type=Path, default=GTDB_REPRESENTATIVES, dest="ref_dir",
+                    help="reference set: one genome or amplicon per .fasta (default GTDB_REPRESENTATIVES)")
     ap.add_argument("--out", type=Path, default=OUTPUT)
     ap.add_argument("--min-identity", type=float, default=0.98,
                     help="closest reference must be at least this identical to call (default 0.98)")

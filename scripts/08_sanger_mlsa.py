@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-"""Main program 2: using the Sanger hsp65 + 16S reads the lab already has for
+"""Using the Sanger hsp65 + 16S reads the lab already has for
 the TNR isolates in data/imm/screening_map_link.csv (symlinked into
 data/sanger/seq_kansasii by scripts/03_link_sanger_kansasii.sh), assess how far
 species-level differentiation actually gets today, and which additional
-locus/loci (from locus_discovery's candidate set) would need to be
+locus/loci (from 04_locus_discovery's candidate set) would need to be
 sequenced to resolve the isolates that remain ambiguous.
 
 Isolates are keyed by PROBENNUMMER: reads under any of an isolate's TNRs
@@ -23,12 +23,16 @@ the references. Isolates further from every reference than the two most
 distant references are from each other are outside the complex and get NA.
 
 Run via submit_sanger_mlsa.sbatch (requires env_mlsa active and
-the mafft Singularity container pulled). Best run after locus_discovery, but falls
+the mafft Singularity container pulled). Best run after 04_locus_discovery, but falls
 back to extracting reference sequences itself if locus_discovery's output is missing.
+
+--exclude-atypical: reference set without the three Korean M. kansasii genomes (ATYPICAL_HSP65_GENOMES, LIT.md);
+reads locus_discovery_excluded, writes output/mlsa/sanger_mlsa_excluded (submit_sanger_mlsa_excluded.sbatch).
+Flags: --screening-map, --sanger-dir, --complex-genomes, --locus-discovery-dir, --out.
 """
 from __future__ import annotations
 
-import os
+import argparse
 import csv
 import logging
 import sys
@@ -41,13 +45,6 @@ sys.path.insert(0, str(REPO_ROOT))
 
 import pandas as pd  # noqa: E402
 
-from mlsa import (  # noqa: E402
-    GTDB_MLSA_ROOT,
-    SANGER_LINK_DIR,
-    SCREENING_MAP,
-    SCREENING_MAP_TNR_COLUMNS,
-    SPECIES,
-)
 from mlsa.align import (  # noqa: E402
     orient_to_reference,
     p_distance_matrix,
@@ -56,39 +53,49 @@ from mlsa.align import (  # noqa: E402
     run_mafft,
     write_fasta,
 )
+from mlsa.kansasii_paths import (  # noqa: E402
+    ATYPICAL_HSP65_GENOMES,
+    GTDB_COMPLEX_GENOMES,
+    OUTPUT_ROOT,
+    SANGER_LINK_DIR,
+    SCREENING_MAP_LINK,
+    SPECIES,
+    TNR_COLUMNS,
+)
 from mlsa.loci import discover_genomes, extract_16s, extract_hsp65  # noqa: E402
 from mlsa.plotting import plot_alignment_heatmap, plot_tree  # noqa: E402
 from mlsa.sanger_io import classify_locus, extract_tnr, load_trimmed_ab1_mixed  # noqa: E402
 
-RESULTS = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii") + "/output") / "mlsa" / "sanger_mlsa"
-LOCUS_DISCOVERY_RESULTS = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii") + "/output") / "mlsa" / "locus_discovery"
+OUTPUT = OUTPUT_ROOT / "mlsa"
+RESULTS = OUTPUT / "sanger_mlsa"
+LOCUS_DISCOVERY_RESULTS = OUTPUT / "locus_discovery"
 LOCI = ["hsp65", "16S"]
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("sanger_mlsa")
 
 
-def load_tnr_to_probennummer() -> dict[str, str]:
-    """Map every TNR in any of SCREENING_MAP_TNR_COLUMNS to its row's
+def load_tnr_to_probennummer(screening_map: Path = SCREENING_MAP_LINK) -> dict[str, str]:
+    """Map every TNR in any of TNR_COLUMNS to its row's
     PROBENNUMMER. Reference strains have no TNR and are skipped."""
     tnr_to_pnr: dict[str, str] = {}
-    with open(SCREENING_MAP, encoding="utf-8") as fh:
+    with open(screening_map, encoding="utf-8") as fh:
         for row in csv.DictReader(fh):
-            for col in SCREENING_MAP_TNR_COLUMNS:
+            for col in TNR_COLUMNS:
                 tnr = row[col]
                 if not tnr:
                     continue
                 if tnr_to_pnr.get(tnr, row["PROBENNUMMER"]) != row["PROBENNUMMER"]:
                     raise ValueError(f"TNR {tnr} listed for both {tnr_to_pnr[tnr]} "
-                                     f"and {row['PROBENNUMMER']} in {SCREENING_MAP}")
+                                     f"and {row['PROBENNUMMER']} in {screening_map}")
                 tnr_to_pnr[tnr] = row["PROBENNUMMER"]
     return tnr_to_pnr
 
 
-def collect_isolate_reads(tnr_to_pnr: dict[str, str]) -> dict[str, dict[str, list[Path]]]:
+def collect_isolate_reads(tnr_to_pnr: dict[str, str], sanger_dir: Path = SANGER_LINK_DIR) -> dict[str, dict[str, list[Path]]]:
     """locus -> {probennummer: [ab1 paths]}"""
     by_locus_pnr: dict[str, dict[str, list[Path]]] = {locus: defaultdict(list) for locus in LOCI}
-    for path in sorted(SANGER_LINK_DIR.glob("*.ab1")):
+    for path in sorted(sanger_dir.glob("*.ab1")):
         locus = classify_locus(path.name)
         if locus is None:
             continue
@@ -141,7 +148,8 @@ def pick_representative(paths: list[Path], refs: dict[str, str],
 
 
 def load_reference_sequences(locus: str, locus_discovery_results: Path = LOCUS_DISCOVERY_RESULTS,
-                              exclude_accessions: frozenset[str] = frozenset()) -> dict[str, str]:
+                              exclude_accessions: frozenset[str] = frozenset(),
+                              complex_genomes: Path = GTDB_COMPLEX_GENOMES) -> dict[str, str]:
     """Reuse locus_discovery's already-extracted reference sequences when available;
     otherwise extract them directly so sanger_mlsa can run standalone."""
     raw_fasta = locus_discovery_results / "alignments" / f"{locus}.raw.fasta"
@@ -150,7 +158,7 @@ def load_reference_sequences(locus: str, locus_discovery_results: Path = LOCUS_D
         return read_fasta(raw_fasta)
 
     log.warning("locus_discovery output for %s not found at %s; extracting references directly", locus, raw_fasta)
-    genomes = [g for g in discover_genomes(GTDB_MLSA_ROOT, SPECIES)
+    genomes = [g for g in discover_genomes(complex_genomes, SPECIES)
                if g.accession not in exclude_accessions]
     extractor = extract_hsp65 if locus == "hsp65" else extract_16s
     refs = {}
@@ -289,19 +297,20 @@ def run_locus_or_combo(label: str, combined_seqs: dict[str, str], species_of: di
 
 
 def main(results_dir: Path = RESULTS, locus_discovery_results: Path = LOCUS_DISCOVERY_RESULTS,
-         exclude_accessions: Iterable[str] = ()) -> None:
+         exclude_accessions: Iterable[str] = (), screening_map: Path = SCREENING_MAP_LINK,
+         sanger_dir: Path = SANGER_LINK_DIR, complex_genomes: Path = GTDB_COMPLEX_GENOMES) -> None:
     exclude_accessions = frozenset(exclude_accessions)
     results_dir.mkdir(parents=True, exist_ok=True)
-    tnr_to_pnr = load_tnr_to_probennummer()
+    tnr_to_pnr = load_tnr_to_probennummer(screening_map)
     log.info("Known TNRs from %s: %d (for %d isolates)",
-             SCREENING_MAP.name, len(tnr_to_pnr), len(set(tnr_to_pnr.values())))
+             screening_map.name, len(tnr_to_pnr), len(set(tnr_to_pnr.values())))
 
-    by_locus_pnr = collect_isolate_reads(tnr_to_pnr)
+    by_locus_pnr = collect_isolate_reads(tnr_to_pnr, sanger_dir)
 
     isolate_seqs: dict[str, dict[str, str]] = {}
     read_rows = []
     for locus in LOCI:
-        refs = load_reference_sequences(locus, locus_discovery_results, exclude_accessions)
+        refs = load_reference_sequences(locus, locus_discovery_results, exclude_accessions, complex_genomes)
         max_ref_dist = reference_max_distance(refs, results_dir / "alignments" / f"{locus}.refs")
         log.info("%s: reads further than %.4f from every reference are skipped when another read is inside",
                  locus, max_ref_dist)
@@ -407,4 +416,14 @@ def main(results_dir: Path = RESULTS, locus_discovery_results: Path = LOCUS_DISC
 
 
 if __name__ == "__main__":
-    main()
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--exclude-atypical", action="store_true", help="reference set without the atypical-hsp65 genomes")
+    ap.add_argument("--screening-map", type=Path, default=SCREENING_MAP_LINK)
+    ap.add_argument("--sanger-dir", type=Path, default=SANGER_LINK_DIR)
+    ap.add_argument("--complex-genomes", type=Path, default=GTDB_COMPLEX_GENOMES)
+    ap.add_argument("--locus-discovery-dir", type=Path, help="default: output/mlsa/locus_discovery[_excluded]")
+    ap.add_argument("--out", type=Path, help="default: output/mlsa/sanger_mlsa[_excluded]")
+    a = ap.parse_args()
+    suffix = "_excluded" if a.exclude_atypical else ""
+    main(a.out or OUTPUT / f"sanger_mlsa{suffix}", a.locus_discovery_dir or OUTPUT / f"locus_discovery{suffix}",
+         ATYPICAL_HSP65_GENOMES if a.exclude_atypical else (), a.screening_map, a.sanger_dir, a.complex_genomes)

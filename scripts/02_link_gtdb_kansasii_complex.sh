@@ -5,10 +5,24 @@
 # Create species-grouped symlinks to the already-downloaded genomes of the
 # M. kansasii species complex, based on the accessions list produced by
 # scripts/01_download_filter_gtdb.sh.
+#
+# Usage: 02_link_gtdb_kansasii_complex.sh [--accessions FILE] [--ncbi-dataset DIR] [--link-root DIR]
+#   defaults: GTDB_ACCESSIONS_DIR/kansasii-complex-mlsa-accessions.txt, NCBI_DATASET, GTDB_COMPLEX_GENOMES
 
 set -euo pipefail
+source "${KANSASII_ROOT:-/shares/sander.imm.uzh/MM/kansasii}/repos/kansasii-docs/templates/kansasii_paths.sh"
 
-ACCESSIONS_OUT=/shares/sander.imm.uzh/MM/kansasii/output/immensekansasii/gtdb/gtdb232/kansasii-complex-mlsa-accessions.txt
+ACCESSIONS_OUT=$GTDB_ACCESSIONS_DIR/kansasii-complex-mlsa-accessions.txt
+NCBI_DATA=$NCBI_DATASET
+LINK_ROOT=$GTDB_COMPLEX_GENOMES
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --accessions) ACCESSIONS_OUT=$2; shift 2 ;;
+    --ncbi-dataset) NCBI_DATA=$2; shift 2 ;;
+    --link-root) LINK_ROOT=$2; shift 2 ;;
+    *) echo "unknown option $1" >&2; exit 1 ;;
+  esac
+done
 
 if [ ! -f "$ACCESSIONS_OUT" ]; then
   echo "ERROR: $ACCESSIONS_OUT not found; run scripts/01_download_filter_gtdb.sh first" >&2
@@ -16,9 +30,6 @@ if [ ! -f "$ACCESSIONS_OUT" ]; then
 fi
 
 # --- create species-grouped symlinks to the already-downloaded genomes -------
-
-NCBI_DATA=/shares/sander.imm.uzh/MM/kansasii/data/gtdb_genomes/Mycobacteriaceae/ncbi_dataset/data
-LINK_ROOT=/shares/sander.imm.uzh/MM/kansasii/data/gtdb_genomes/Mycobacteriaceae/mlsa-kansasii
 
 mkdir -p "$LINK_ROOT"
 for species in kansasii persicum pseudokansasii innocens attenuatum ostraviense gastri; do

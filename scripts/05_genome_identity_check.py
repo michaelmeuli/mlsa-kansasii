@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Genome-wide identity check: all-vs-all ANI (skani) between the GTDB r232
 reference genomes of the 7 M. kansasii complex species, i.e. the same
-genomes locus_discovery/sanger_mlsa use. It answers whether a genome whose marker genes
+genomes 04_locus_discovery / 08_sanger_mlsa use. It answers whether a genome whose marker genes
 look like another species (e.g. the persicum-like hsp65 of
 GCF_002705785.1/825.1/865.1, or the persicum-type 16S of GCF_002086895.1)
 is really a different species genome-wide. See LIT.md.
@@ -17,10 +17,11 @@ Outputs (in RESULTS):
 - skani_version.txt
 
 Run via submit_genome_identity_check.sbatch (requires env_mlsa and
-apptainer).
+apptainer). Flags: --complex-genomes DIR (default GTDB_COMPLEX_GENOMES), --out DIR.
 """
 from __future__ import annotations
 
+import argparse
 import logging
 import os
 import sys
@@ -31,11 +32,12 @@ sys.path.insert(0, str(REPO_ROOT))
 
 import pandas as pd  # noqa: E402
 
-from mlsa import GTDB_MLSA_ROOT, SPECIES  # noqa: E402
 from mlsa.align import run_skani_triangle, skani_version  # noqa: E402
+from mlsa.kansasii_paths import GTDB_COMPLEX_GENOMES, OUTPUT_ROOT, SPECIES  # noqa: E402
 from mlsa.loci import discover_genomes  # noqa: E402
 
-RESULTS = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii") + "/output") / "mlsa" / "genome_identity_check"
+OUTPUT = OUTPUT_ROOT / "mlsa"
+RESULTS = OUTPUT / "genome_identity_check"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("genome_identity_check")
@@ -71,9 +73,9 @@ def species_summary(long: pd.DataFrame) -> pd.DataFrame:
     return summary.sort_values(["species_a", "species_b"], key=lambda c: c.map(rank))
 
 
-def main(results_dir: Path = RESULTS) -> None:
+def main(results_dir: Path = RESULTS, complex_genomes: Path = GTDB_COMPLEX_GENOMES) -> None:
     results_dir.mkdir(parents=True, exist_ok=True)
-    genomes = discover_genomes(GTDB_MLSA_ROOT, SPECIES)
+    genomes = discover_genomes(complex_genomes, SPECIES)
     genome_list = results_dir / "genomes.txt"
     genome_list.write_text("".join(f"{p}\n" for p in sorted(str(g.fna_path) for g in genomes)), encoding="utf-8", newline="\n")
     log.info("Running skani on %d genomes", len(genomes))
@@ -95,4 +97,8 @@ def main(results_dir: Path = RESULTS) -> None:
 
 
 if __name__ == "__main__":
-    main()
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--complex-genomes", type=Path, default=GTDB_COMPLEX_GENOMES, help="<species>/<accession>.fna of the 72 genomes")
+    ap.add_argument("--out", type=Path, default=RESULTS)
+    a = ap.parse_args()
+    main(a.out, a.complex_genomes)

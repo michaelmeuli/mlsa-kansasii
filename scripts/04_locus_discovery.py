@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Main program 1: find the smallest set of loci that, extracted from the
+"""Find the smallest set of loci that, extracted from the
 GTDB r232 reference genomes, fully separates the 7 species of the
 M. kansasii complex (kansasii, persicum, pseudokansasii, innocens,
 attenuatum, ostraviense, gastri).
@@ -19,10 +19,14 @@ most reduces the number of unseparated species pairs.
 
 Run via submit_locus_discovery.sbatch on the cluster (requires env_mlsa
 active and the mafft/iqtree Singularity containers pulled).
+
+--exclude-atypical drops the three Korean M. kansasii genomes with a persicum-like hsp65 (ATYPICAL_HSP65_GENOMES,
+LIT.md) and writes to output/mlsa/locus_discovery_excluded: a sensitivity analysis, run by
+submit_locus_discovery_excluded.sbatch. Flags: --complex-genomes DIR (default GTDB_COMPLEX_GENOMES), --out DIR.
 """
 from __future__ import annotations
 
-import os
+import argparse
 import itertools
 import logging
 import sys
@@ -34,7 +38,6 @@ sys.path.insert(0, str(REPO_ROOT))
 
 import pandas as pd  # noqa: E402
 
-from mlsa import SPECIES, GTDB_MLSA_ROOT  # noqa: E402
 from mlsa.align import (  # noqa: E402
     barcoding_gap_check,
     p_distance_matrix,
@@ -45,10 +48,13 @@ from mlsa.align import (  # noqa: E402
     species_sort_key,
     write_fasta,
 )
+from mlsa.kansasii_paths import ATYPICAL_HSP65_GENOMES, GTDB_COMPLEX_GENOMES, OUTPUT_ROOT, SPECIES  # noqa: E402
 from mlsa.loci import CANDIDATE_LOCI, GenomeRecord, discover_genomes, extract_all_loci  # noqa: E402
 from mlsa.plotting import plot_alignment_heatmap, plot_tree  # noqa: E402
 
-RESULTS = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii") + "/output") / "mlsa" / "locus_discovery"
+OUTPUT = OUTPUT_ROOT / "mlsa"
+RESULTS = OUTPUT / "locus_discovery"
+RESULTS_EXCLUDED = OUTPUT / "locus_discovery_excluded"
 MAX_EXHAUSTIVE_SIZE = 4
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -198,10 +204,11 @@ def search_minimal_combo(aligned: dict[str, dict[str, str]], usable_loci: list[s
     return all_results, None
 
 
-def main(results_dir: Path = RESULTS, exclude_accessions: Iterable[str] = ()) -> None:
+def main(results_dir: Path = RESULTS, exclude_accessions: Iterable[str] = (),
+         complex_genomes: Path = GTDB_COMPLEX_GENOMES) -> None:
     exclude_accessions = frozenset(exclude_accessions)
     results_dir.mkdir(parents=True, exist_ok=True)
-    genomes = discover_genomes(GTDB_MLSA_ROOT, SPECIES)
+    genomes = discover_genomes(complex_genomes, SPECIES)
     log.info("Discovered %d reference genomes across %d species", len(genomes), len(SPECIES))
     if exclude_accessions:
         present = {g.accession for g in genomes}
@@ -261,4 +268,10 @@ def main(results_dir: Path = RESULTS, exclude_accessions: Iterable[str] = ()) ->
 
 
 if __name__ == "__main__":
-    main()
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--exclude-atypical", action="store_true", help="drop the atypical-hsp65 genomes; default out: locus_discovery_excluded")
+    ap.add_argument("--complex-genomes", type=Path, default=GTDB_COMPLEX_GENOMES)
+    ap.add_argument("--out", type=Path, help="results directory (default: output/mlsa/locus_discovery[_excluded])")
+    a = ap.parse_args()
+    main(a.out or (RESULTS_EXCLUDED if a.exclude_atypical else RESULTS),
+         ATYPICAL_HSP65_GENOMES if a.exclude_atypical else (), a.complex_genomes)

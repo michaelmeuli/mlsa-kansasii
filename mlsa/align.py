@@ -18,11 +18,9 @@ import pandas as pd
 from Bio import Align, SeqIO
 from Bio.Seq import Seq
 
-from . import SPECIES
+from .kansasii_paths import IMMENSE_CONTAINERS, SPECIES
 
-CONTAINER_ROOT = Path(
-    "/shares/sander.imm.uzh/software/pipelines/IMMense/IMMense_dependencies/containers"
-)
+CONTAINER_ROOT = IMMENSE_CONTAINERS
 MAFFT_IMG = CONTAINER_ROOT / "quay.io-biocontainers-mafft-7.525--h031d066_1.img"
 IQTREE_IMG = CONTAINER_ROOT / "quay.io-biocontainers-iqtree-3.1.3--h8471819_0.img"
 # skani ships in the GTDB-Tk container.
