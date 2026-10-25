@@ -384,6 +384,7 @@ def main(results_dir: Path = RESULTS, locus_discovery_results: Path = LOCUS_DISC
             tnrs = [picked_tnr[(locus, row["probennummer"])] for locus in loci]
             return ",".join(dict.fromkeys(tnrs))
         results_df["TNR"] = results_df.apply(tnr_of, axis=1)
+    results_df = results_df.sort_values(["probennummer", "locus"]).reset_index(drop=True)  # row order must not depend on read order
     results_df.to_csv(results_dir / "isolate_classification.tsv", sep="\t", index=False)
 
     summary_lines = ["Differentiation summary (unambiguous / total isolates; "
