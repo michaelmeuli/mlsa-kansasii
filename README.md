@@ -10,17 +10,27 @@ the lab's existing hsp65 + 16S Sanger data already get?
 Programs are grouped in three stages (formerly `main1` to `main4`; old logs, emails and
 CHANGELOG entries before 2026-10-23 use those names):
 
-| Stage | Program (`output/mlsa/<program>/`) | Was | Question |
+| Stage | Program (script `scripts/NN_<program>.py`, output `output/mlsa/<program>/`) | Was | Question |
 |---|---|---|---|
-| **A. Reference genomes** | `locus_discovery/` | main1 | Which smallest locus combination fully separates the 7 species in the GTDB genomes? |
-| | `genome_identity_check/` | - | Are genomes with atypical marker genes really another species? All-vs-all ANI (skani), see LIT.md. |
-| **B. Sanger species ID** | `sanger_mlsa/` | main2 | How far do the isolates' hsp65/16S reads resolve species (distances to all reference genomes), and which extra locus (from `locus_discovery`'s candidates) would resolve the ambiguous ones? |
-| | `sanger_refalign/` | main3 | Species of a read (`.ab1`/FASTA) by plain alignment to one reference genome per species, no MLSA. One row per read in `reference_alignment.tsv` (no PDFs: sanger-microsynth makes and emails the per-read alignment PDF). Logic in `mlsa/refalign.py` (copied to sanger-microsynth). |
-| **C. Validation** | `sanger_vs_wgs/` | main4 | How often do the Sanger hsp65 calls match the whole-genome species? |
+| **A. Reference genomes** | `locus_discovery` (04) | main1 | Which smallest locus combination fully separates the 7 species in the GTDB genomes? |
+| | `genome_identity_check` (05) | - | Are genomes with atypical marker genes really another species? All-vs-all ANI (skani), see LIT.md. |
+| **B. Sanger species ID** | `sanger_mlsa` (08) | main2 | How far do the isolates' hsp65/16S reads resolve species (distances to all reference genomes), and which extra locus (from `locus_discovery`'s candidates) would resolve the ambiguous ones? |
+| | `sanger_refalign` (09) | main3 | Species of a read (`.ab1`/FASTA) by plain alignment to one reference genome per species, no MLSA. One row per read in `reference_alignment.tsv` (no PDFs: sanger-microsynth makes and emails the per-read alignment PDF). Logic in `mlsa/refalign.py` (copied to sanger-microsynth). |
+| **C. Validation** | `sanger_vs_wgs` (10) | main4 | How often do the Sanger hsp65 calls match the whole-genome species? |
 
 Each of `locus_discovery` and `sanger_mlsa` has an `_excluded` sensitivity variant (without the 3
-atypical Korean *M. kansasii* genomes, see LIT.md). `sanger_refalign` has hsp65 variants (72 genome amplicons;
-IUPAC experiment, see below). All are SLURM jobs: `<program>/submit_*.sbatch` calls `<program>/run_*.py`.
+atypical Korean *M. kansasii* genomes `ATYPICAL_HSP65_GENOMES`, see LIT.md): the same script with `--exclude-atypical`,
+writing to `output/mlsa/<program>_excluded/`. `sanger_refalign` has hsp65 variants (72 genome amplicons;
+IUPAC experiment, see below). All are SLURM jobs: `submit_<program>.sbatch` (repo root) calls `scripts/NN_<program>.py`.
+
+```
+mlsa/             Python package: loci, align, refalign, sanger_io, plotting, protocols; kansasii_paths.py (shared constants, vendored)
+scripts/          01-03 input preparation (shell), 04-10 the programs, windows_notes.ps1
+submit_*.sbatch   one per program (+ _excluded, hsp65 amplicon alignment, IUPAC experiments)
+```
+
+Every input path is a constant of `kansasii_paths.py` and a flag of the script that reads it (`--complex-genomes`,
+`--sanger-dir`, `--screening-map`, `--locus-discovery-dir`, `--ref-dir` / `--gtdb-representatives`, `--out`).
 
 Supporting code:
 
@@ -30,7 +40,8 @@ Supporting code:
     immensekansasii step 1) into `data/gtdb_genomes/Mycobacteriaceae/mlsa-kansasii/<species>/`.
   - `03_link_sanger_kansasii.sh` symlinks the `.ab1` Sanger traces of the TNR isolates in
     `data/imm/screening_map_link.csv` into `data/sanger/seq_kansasii/`.
-  - `04_make_hsp65_references.py`, `05_make_iupac_hsp65_references.py` build hsp65 reference sets for `sanger_refalign`.
+  - `06_make_hsp65_references.py`, `07_make_iupac_hsp65_references.py` build hsp65 reference sets for `sanger_refalign`
+    (`04`, `05`, `08`, `09`, `10` are the programs, see the table above).
 - `mlsa/` — shared Python package: locus extraction (GFF gene symbols; 16S and ITS via rRNA features; hsp65 via
   in-silico PCR with the lab's TB-11/TB-12(w) primers parsed from the protocol `.docx`), AB1 parsing + quality
   trimming, mafft/iqtree wrappers (via Singularity), and plotting.
@@ -53,13 +64,13 @@ GTDB genomes downloaded by immensekansasii step 1. Steps in dependency order; "N
 | 1 | inputs | `scripts/01_download_filter_gtdb.sh` | - | accession list of the 7 species (`output/immensekansasii/gtdb/gtdb232/`) |
 | 2 | inputs | `scripts/02_link_gtdb_kansasii_complex.sh` | 1, genomes | `data/gtdb_genomes/.../mlsa-kansasii/<species>/` |
 | 3 | inputs | `scripts/03_link_sanger_kansasii.sh` | link table | `data/sanger/seq_kansasii/` |
-| 4 | A | `sbatch locus_discovery/submit_locus_discovery.sbatch` (+ `locus_discovery_excluded`) | 2 | `output/mlsa/locus_discovery*` |
-| 5 | A | `sbatch genome_identity_check/submit_genome_identity_check.sbatch` | 2 | `output/mlsa/genome_identity_check/` |
-| 6 | inputs | `python scripts/04_make_hsp65_references.py` | 4 | `data/gtdb_genomes/.../kansasii_complex_hsp65_amplicons/` |
-| 7 | B | `sbatch sanger_mlsa/submit_sanger_mlsa.sbatch` (+ `sanger_mlsa_excluded`) | 3, 4 | `output/mlsa/sanger_mlsa*` |
-| 8 | B | `sbatch sanger_refalign/submit_sanger_refalign.sbatch`, then `submit_hsp65_amplicon_alignment.sbatch` | 3 (and 6 for the second) | `output/mlsa/sanger_refalign*` |
+| 4 | A | `sbatch submit_locus_discovery.sbatch` (+ `submit_locus_discovery_excluded.sbatch`) | 2 | `output/mlsa/locus_discovery*` |
+| 5 | A | `sbatch submit_genome_identity_check.sbatch` | 2 | `output/mlsa/genome_identity_check/` |
+| 6 | inputs | `python scripts/06_make_hsp65_references.py` | 4 | `data/gtdb_genomes/.../kansasii_complex_hsp65_amplicons/` |
+| 7 | B | `sbatch submit_sanger_mlsa.sbatch` (+ `submit_sanger_mlsa_excluded.sbatch`) | 3, 4 | `output/mlsa/sanger_mlsa*` |
+| 8 | B | `sbatch submit_sanger_refalign.sbatch`, then `submit_hsp65_amplicon_alignment.sbatch` | 3 (and 6 for the second) | `output/mlsa/sanger_refalign*` |
 | 9 | - | immensekansasii `06_screening_map_results.py` | 7, 8 | `data/imm/screening_map_results.csv` |
-| 10 | C | `sbatch sanger_vs_wgs/submit_sanger_vs_wgs.sbatch` | 7, 8, 9 | `output/mlsa/sanger_vs_wgs/` |
+| 10 | C | `sbatch submit_sanger_vs_wgs.sbatch` | 7, 8, 9 | `output/mlsa/sanger_vs_wgs/` |
 
 `immensekansasii/scripts/run_downstream.sh` submits all of this (and the other repos' downstream
 steps) as one dependency chain.
@@ -76,11 +87,11 @@ scp -r mimeul@cluster.s3it.uzh.ch:/shares/sander.imm.uzh/MM/kansasii/output/* "$
 
 ## Plain alignment to references vs MLSA
 
-`python sanger_refalign/run_sanger_refalign.py <reads or dirs>` (about 3 s per read).
+`python scripts/09_sanger_refalign.py <reads or dirs>` (about 3 s per read).
 Call = closest reference by differences over the read: `ok` (&ge;98% identity, &ge;2
 differences fewer than the closest other species), `ambiguous`, `divergent` (&lt;98%, e.g. new lineage, introgressed
 locus, or bad read). By default the 7 representatives; for hsp65 reads use `--ref-dir` with the 72 per-genome
-hsp65 amplicons (`scripts/04_make_hsp65_references.py`, job `submit_hsp65_amplicon_alignment.sbatch`), which also flags
+hsp65 amplicons (`scripts/06_make_hsp65_references.py`, job `submit_hsp65_amplicon_alignment.sbatch`), which also flags
 reads matching the atypical-hsp65 kansasii genomes (`atypical_hsp65` column). sanger_vs_wgs benchmarks this against
 whole-genome species: 82 of 83 calls correct on 92 isolates (the miss is a mixed culture). Compared with locus_discovery/sanger_mlsa:
 
@@ -102,13 +113,13 @@ IUPAC-aware scoring on the read side alone has little to act on. The test theref
 carry ambiguity: one consensus per species from `output/mlsa/locus_discovery/alignments/hsp65.aligned.fasta`
 where every column with more than one base becomes the IUPAC code of those bases.
 
-`run_sanger_refalign.py --iupac` (default off, so the default output is unchanged):
+`09_sanger_refalign.py --iupac` (default off, so the default output is unchanged):
 - the aligner scores identical codes 2, overlapping codes (R vs A) 1, anything with N 0, disjoint codes -3;
 - ambiguity codes in the reference are kept;
 - a column is a difference only if the two codes share no base (R vs A matches, R vs C differs); N columns are not compared.
 
-`scripts/05_make_iupac_hsp65_references.py MIN_MINOR OUT_DIR` builds the consensus references (MIN_MINOR 1 = every
-polymorphic site, 2 = a base needs >= 2 genomes). Job `sanger_refalign/submit_hsp65_iupac_experiment.sbatch`
+`scripts/07_make_iupac_hsp65_references.py MIN_MINOR OUT_DIR` builds the consensus references (MIN_MINOR 1 = every
+polymorphic site, 2 = a base needs >= 2 genomes). Job `submit_hsp65_iupac_experiment.sbatch`
 writes `output/mlsa/sanger_refalign_hsp65_iupac/`: A = baseline (the amplicon run), B = `--iupac` on the 72
 amplicons, C/D = `--iupac` on the consensus (MIN_MINOR 1/2), E = old scoring on the same 7 consensus references.
 
@@ -229,7 +240,7 @@ genomes to trust or exclude. No pipeline step reads them.
 
 ## How sanger_mlsa classifies isolates (`isolate_classification.tsv`)
 
-Implemented in `sanger_mlsa/run_sanger_mlsa.py`.
+Implemented in `scripts/08_sanger_mlsa.py`.
 The table has one row per isolate (`probennummer`) per `locus` (`hsp65`,
 `16S`, `hsp65+16S`). `TNR` is the TNR of the read that was picked (for
 hsp65+16S, both TNRs, hsp65 first, if they differ).
@@ -250,7 +261,7 @@ hsp65+16S, both TNRs, hsp65 first, if they differ).
    were available, is in `representative_reads.tsv`.
 2. **Alignment.** The isolate reads are aligned with MAFFT together with the
    reference sequences of the 7 species from locus_discovery
-   (`locus_discovery/alignments/<locus>.raw.fasta`, or extracted again
+   (`output/mlsa/locus_discovery/alignments/<locus>.raw.fasta`, or extracted again
    if locus_discovery's output is missing). Distance is the uncorrected p-distance: the
    fraction of positions that differ, counting only positions where neither
    sequence has a gap.
