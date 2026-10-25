@@ -16,3 +16,8 @@ source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate env_mlsa
 
 python "$REPO_ROOT/genome_identity_check/run_genome_identity_check.py"
+
+# provenance (see kansasii-docs/docs/PROVENANCE.md)
+bash /shares/sander.imm.uzh/MM/kansasii/repos/kansasii-docs/bin/write_manifest.sh \
+  "/shares/sander.imm.uzh/MM/kansasii/output/mlsa/genome_identity_check" \
+  /shares/sander.imm.uzh/MM/kansasii/repos/mlsa-kansasii submit_genome_identity_check.sbatch
