@@ -18,10 +18,10 @@ from pathlib import Path
 from Bio import SeqIO
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from mlsa.kansasii_paths import OUTPUT_ROOT  # noqa: E402
+from mlsa.kansasii_paths import OUT_MLSA
 from mlsa.refalign import BASES_IUPAC  # noqa: E402
 
-SRC = OUTPUT_ROOT / "mlsa" / "locus_discovery" / "alignments" / "hsp65.aligned.fasta"
+SRC = OUT_MLSA / "results" / "locus_discovery" / "alignments" / "hsp65.aligned.fasta"
 
 
 def consensus(seqs: list[str], min_minor: int) -> str:

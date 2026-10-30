@@ -2,7 +2,7 @@
 """Is hsp65 alone enough? Benchmark hsp65 species calls against the
 whole-genome (GTDB-Tk) species of the same isolates.
 
-Two questions, both against the WGS species in output/screening_map_results.csv
+Two questions, both against the WGS species in output/immensekansasii/results/screening_map_results.csv
 (complex species only):
 
   1. Sanger vs WGS: how often do the existing Sanger hsp65 calls (sanger_mlsa nearest species,
@@ -12,7 +12,7 @@ Two questions, both against the WGS species in output/screening_map_results.csv
      it separates failed Sanger reads (assay) from the limits of the marker itself.
 
 Needs the outputs of 08_sanger_mlsa (+ _excluded) and 09_sanger_refalign. Writes to
-output/mlsa/sanger_vs_wgs/: sanger_vs_wgs.tsv, insilico_vs_wgs.tsv, SUMMARY.txt.
+output/mlsa-kansasii/results/sanger_vs_wgs/: sanger_vs_wgs.tsv, insilico_vs_wgs.tsv, SUMMARY.txt.
 """
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ import pandas as pd  # noqa: E402
 from mlsa.kansasii_paths import (  # noqa: E402
     ASSEMBLIES,
     GTDB_REPRESENTATIVES,
-    OUTPUT_ROOT,
+    OUT_MLSA,
     REFERENCE_STRAINS,
     SCREENING_MAP_RESULTS,
     SPECIES,
@@ -38,7 +38,7 @@ from mlsa.protocols import get_hsp65_primers  # noqa: E402
 from mlsa.refalign import identify_read, load_references  # noqa: E402
 from Bio import SeqIO  # noqa: E402
 
-MLSA = OUTPUT_ROOT / "mlsa"
+MLSA = OUT_MLSA / "results"
 OUTPUT = MLSA / "sanger_vs_wgs"
 
 

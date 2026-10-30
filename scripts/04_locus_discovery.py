@@ -21,7 +21,7 @@ Run via submit_locus_discovery.sbatch on the cluster (requires env_mlsa
 active and the mafft/iqtree Singularity containers pulled).
 
 --exclude-atypical drops the three Korean M. kansasii genomes with a persicum-like hsp65 (ATYPICAL_HSP65_GENOMES,
-LIT.md) and writes to output/mlsa/locus_discovery_excluded: a sensitivity analysis, run by
+LIT.md) and writes to output/mlsa-kansasii/results/locus_discovery_excluded: a sensitivity analysis, run by
 submit_locus_discovery_excluded.sbatch. Flags: --complex-genomes DIR (default GTDB_COMPLEX_GENOMES), --out DIR.
 """
 from __future__ import annotations
@@ -48,11 +48,11 @@ from mlsa.align import (  # noqa: E402
     species_sort_key,
     write_fasta,
 )
-from mlsa.kansasii_paths import ATYPICAL_HSP65_GENOMES, GTDB_COMPLEX_GENOMES, OUTPUT_ROOT, SPECIES  # noqa: E402
+from mlsa.kansasii_paths import ATYPICAL_HSP65_GENOMES, GTDB_COMPLEX_GENOMES, OUT_MLSA, SPECIES
 from mlsa.loci import CANDIDATE_LOCI, GenomeRecord, discover_genomes, extract_all_loci  # noqa: E402
 from mlsa.plotting import plot_alignment_heatmap, plot_tree  # noqa: E402
 
-OUTPUT = OUTPUT_ROOT / "mlsa"
+OUTPUT = OUT_MLSA / "results"
 RESULTS = OUTPUT / "locus_discovery"
 RESULTS_EXCLUDED = OUTPUT / "locus_discovery_excluded"
 MAX_EXHAUSTIVE_SIZE = 4
@@ -271,7 +271,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--exclude-atypical", action="store_true", help="drop the atypical-hsp65 genomes; default out: locus_discovery_excluded")
     ap.add_argument("--complex-genomes", type=Path, default=GTDB_COMPLEX_GENOMES)
-    ap.add_argument("--out", type=Path, help="results directory (default: output/mlsa/locus_discovery[_excluded])")
+    ap.add_argument("--out", type=Path, help="results directory (default: output/mlsa-kansasii/results/locus_discovery[_excluded])")
     a = ap.parse_args()
     main(a.out or (RESULTS_EXCLUDED if a.exclude_atypical else RESULTS),
          ATYPICAL_HSP65_GENOMES if a.exclude_atypical else (), a.complex_genomes)

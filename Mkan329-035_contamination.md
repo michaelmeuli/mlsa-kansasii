@@ -1,6 +1,6 @@
 # Mkan329-035 (TNR 2024500472): species disagreement and contamination
 
-Checked 2026-10-05. TNR taken from `output/screening_map_results.csv`.
+Checked 2026-10-05. TNR taken from `output/immensekansasii/results/screening_map_results.csv`.
 
 ## Summary
 

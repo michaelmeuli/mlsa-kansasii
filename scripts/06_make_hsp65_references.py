@@ -15,9 +15,9 @@ from pathlib import Path
 from Bio import SeqIO
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # repo root: the mlsa package
-from mlsa.kansasii_paths import HSP65_AMPLICONS, OUTPUT_ROOT  # noqa: E402
+from mlsa.kansasii_paths import HSP65_AMPLICONS, OUT_MLSA
 
-SRC = OUTPUT_ROOT / "mlsa" / "locus_discovery" / "alignments" / "hsp65.raw.fasta"
+SRC = OUT_MLSA / "results" / "locus_discovery" / "alignments" / "hsp65.raw.fasta"
 
 
 def main() -> None:

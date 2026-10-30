@@ -11,7 +11,7 @@ source "${KANSASII_ROOT:-/shares/sander.imm.uzh/MM/kansasii}/repos/kansasii-docs
 RELEASE="${1:-$GTDB_RELEASE}"
 
 DATA_DIR="$DATA/immensekansasii/gtdb/gtdb$RELEASE"   # GTDB_METADATA_DIR for the default release
-OUT_DIR="$OUTPUT_ROOT/immensekansasii/gtdb/gtdb$RELEASE"   # GTDB_ACCESSIONS_DIR
+OUT_DIR="$OUT_IMM/gtdb/gtdb$RELEASE"   # GTDB_ACCESSIONS_DIR
 
 mkdir -p "$DATA_DIR" "$OUT_DIR"
 cd "$DATA_DIR"

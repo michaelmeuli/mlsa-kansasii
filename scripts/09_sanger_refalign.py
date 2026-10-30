@@ -11,7 +11,7 @@ Usage:
   python scripts/09_sanger_refalign.py READ [READ ...]
   READ = .ab1 trace (quality-trimmed here), .fasta/.fa read (used as is), or a directory of those.
 
-Writes to OUTPUT (default output/mlsa/sanger_refalign/):
+Writes to OUTPUT (default output/mlsa-kansasii/results/sanger_refalign/):
   reference_alignment.tsv   one row per read (mixed_fraction: share of mixed peaks in .ab1 reads, informational)
 No PDFs: the per-read alignment PDF is made by sanger-microsynth (sanger_ms/refalign.py), which emails it.
 About 3 s per read on one core, so fine on the login node for a handful of reads; use a
@@ -30,11 +30,11 @@ sys.path.insert(0, str(REPO_ROOT))
 import pandas as pd  # noqa: E402
 from Bio import SeqIO  # noqa: E402
 
-from mlsa.kansasii_paths import GTDB_REPRESENTATIVES, OUTPUT_ROOT, SPECIES  # noqa: E402
+from mlsa.kansasii_paths import GTDB_REPRESENTATIVES, OUT_MLSA, SPECIES
 from mlsa.refalign import identify_read, load_references  # noqa: E402
 from mlsa.sanger_io import classify_locus, load_trimmed_ab1_mixed  # noqa: E402
 
-OUTPUT = OUTPUT_ROOT / "mlsa" / "sanger_refalign"
+OUTPUT = OUT_MLSA / "results" / "sanger_refalign"
 
 
 def iter_reads(paths: list[Path]) -> Iterator[tuple[str, str | None, str, float | None]]:

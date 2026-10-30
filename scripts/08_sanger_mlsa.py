@@ -14,7 +14,7 @@ taken as that isolate's representative sequence (no fwd/rev consensus
 assembly in this first pass); see pick_representative.
 Representative sequences are oriented against a reference sequence, aligned
 together with the 7-species reference sequences from locus_discovery (reused from
-output/mlsa/locus_discovery/alignments/*.raw.fasta when available, else
+output/mlsa-kansasii/results/locus_discovery/alignments/*.raw.fasta when available, else
 re-extracted directly), and each isolate is classified as unambiguously
 nested in one species' cluster, or ambiguous, using the same DNA-barcoding
 gap logic as locus_discovery: the gap between the isolate's nearest and second-nearest
@@ -27,7 +27,7 @@ the mafft Singularity container pulled). Best run after 04_locus_discovery, but 
 back to extracting reference sequences itself if locus_discovery's output is missing.
 
 --exclude-atypical: reference set without the three Korean M. kansasii genomes (ATYPICAL_HSP65_GENOMES, LIT.md);
-reads locus_discovery_excluded, writes output/mlsa/sanger_mlsa_excluded (submit_sanger_mlsa_excluded.sbatch).
+reads locus_discovery_excluded, writes output/mlsa-kansasii/results/sanger_mlsa_excluded (submit_sanger_mlsa_excluded.sbatch).
 Flags: --screening-map, --sanger-dir, --complex-genomes, --locus-discovery-dir, --out.
 """
 from __future__ import annotations
@@ -56,7 +56,7 @@ from mlsa.align import (  # noqa: E402
 from mlsa.kansasii_paths import (  # noqa: E402
     ATYPICAL_HSP65_GENOMES,
     GTDB_COMPLEX_GENOMES,
-    OUTPUT_ROOT,
+    OUT_MLSA,
     SANGER_LINK_DIR,
     SCREENING_MAP_LINK,
     SPECIES,
@@ -66,7 +66,7 @@ from mlsa.loci import discover_genomes, extract_16s, extract_hsp65  # noqa: E402
 from mlsa.plotting import plot_alignment_heatmap, plot_tree  # noqa: E402
 from mlsa.sanger_io import classify_locus, extract_tnr, load_trimmed_ab1_mixed  # noqa: E402
 
-OUTPUT = OUTPUT_ROOT / "mlsa"
+OUTPUT = OUT_MLSA / "results"
 RESULTS = OUTPUT / "sanger_mlsa"
 LOCUS_DISCOVERY_RESULTS = OUTPUT / "locus_discovery"
 LOCI = ["hsp65", "16S"]
@@ -422,8 +422,8 @@ if __name__ == "__main__":
     ap.add_argument("--screening-map", type=Path, default=SCREENING_MAP_LINK)
     ap.add_argument("--sanger-dir", type=Path, default=SANGER_LINK_DIR)
     ap.add_argument("--complex-genomes", type=Path, default=GTDB_COMPLEX_GENOMES)
-    ap.add_argument("--locus-discovery-dir", type=Path, help="default: output/mlsa/locus_discovery[_excluded]")
-    ap.add_argument("--out", type=Path, help="default: output/mlsa/sanger_mlsa[_excluded]")
+    ap.add_argument("--locus-discovery-dir", type=Path, help="default: output/mlsa-kansasii/results/locus_discovery[_excluded]")
+    ap.add_argument("--out", type=Path, help="default: output/mlsa-kansasii/results/sanger_mlsa[_excluded]")
     a = ap.parse_args()
     suffix = "_excluded" if a.exclude_atypical else ""
     main(a.out or OUTPUT / f"sanger_mlsa{suffix}", a.locus_discovery_dir or OUTPUT / f"locus_discovery{suffix}",

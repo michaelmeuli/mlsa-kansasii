@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# IUPAC experiment A-E (README) -> output/mlsa/sanger_refalign_hsp65_iupac/
+# IUPAC experiment A-E (README) -> output/mlsa-kansasii/results/sanger_refalign_hsp65_iupac/
 #SBATCH --job-name=mlsa-refalign-iupac
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=8G
 #SBATCH --time=04:00:00
-#SBATCH --output=/shares/sander.imm.uzh/MM/kansasii/output/mlsa/logs/%x-%j.log
+#SBATCH --output=/shares/sander.imm.uzh/MM/kansasii/output/mlsa-kansasii/logs/%x-%j.log
 
 set -euo pipefail
 source "${KANSASII_ROOT:-/shares/sander.imm.uzh/MM/kansasii}/repos/kansasii-docs/templates/kansasii_paths.sh"
 REPO=$REPOS/mlsa-kansasii
-OUTPUT=$OUTPUT_ROOT/mlsa
+OUTPUT=$OUT_MLSA/results
 source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate env_mlsa
 

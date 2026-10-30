@@ -4,13 +4,13 @@ See README.md for the question, layout, setup, run order and how sanger_mlsa
 classifies isolates. This file only lists what is easy to get wrong.
 
 - **Outputs are on the shares, not in the repo:**
-  `/shares/sander.imm.uzh/MM/kansasii/output/mlsa/<program>/`. A repo-local
+  `/shares/sander.imm.uzh/MM/kansasii/output/mlsa-kansasii/results/<program>/`. A repo-local
   `results/` folder is obsolete. Don't read from it or write to it.
 - **Environment:** the system `python3` has no pandas or Biopython. Use
   `conda activate env_mlsa`. Real runs go through the `submit_*.sbatch` SLURM
   jobs (`module load apptainer`, mafft/iqtree via Singularity). Don't run the
   full pipelines on the login node. Job logs (`*-<jobid>.log`) are written to
-  `output/mlsa/logs/` (the directory must exist before `sbatch`).
+  `output/mlsa-kansasii/logs/` (the directory must exist before `sbatch`).
 - **Paths:** shared constants come from `mlsa/kansasii_paths.py`, a vendored copy of
   `kansasii-docs/templates/kansasii_paths.py` (never edit it here; `bash repos/check_sync.sh --fix`). Each
   script takes its inputs as flags defaulting to those constants; `RESULTS`/`LOCUS_DISCOVERY_RESULTS` are

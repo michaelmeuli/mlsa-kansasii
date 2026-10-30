@@ -33,10 +33,10 @@ sys.path.insert(0, str(REPO_ROOT))
 import pandas as pd  # noqa: E402
 
 from mlsa.align import run_skani_triangle, skani_version  # noqa: E402
-from mlsa.kansasii_paths import GTDB_COMPLEX_GENOMES, OUTPUT_ROOT, SPECIES  # noqa: E402
+from mlsa.kansasii_paths import GTDB_COMPLEX_GENOMES, OUT_MLSA, SPECIES
 from mlsa.loci import discover_genomes  # noqa: E402
 
-OUTPUT = OUTPUT_ROOT / "mlsa"
+OUTPUT = OUT_MLSA / "results"
 RESULTS = OUTPUT / "genome_identity_check"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")

@@ -10,7 +10,7 @@ the lab's existing hsp65 + 16S Sanger data already get?
 Programs are grouped in three stages (formerly `main1` to `main4`; old logs, emails and
 CHANGELOG entries before 2026-10-23 use those names):
 
-| Stage | Program (script `scripts/NN_<program>.py`, output `output/mlsa/<program>/`) | Was | Question |
+| Stage | Program (script `scripts/NN_<program>.py`, output `output/mlsa-kansasii/results/<program>/`) | Was | Question |
 |---|---|---|---|
 | **A. Reference genomes** | `locus_discovery` (04) | main1 | Which smallest locus combination fully separates the 7 species in the GTDB genomes? |
 | | `genome_identity_check` (05) | - | Are genomes with atypical marker genes really another species? All-vs-all ANI (skani), see LIT.md. |
@@ -20,7 +20,7 @@ CHANGELOG entries before 2026-10-23 use those names):
 
 Each of `locus_discovery` and `sanger_mlsa` has an `_excluded` sensitivity variant (without the 3
 atypical Korean *M. kansasii* genomes `ATYPICAL_HSP65_GENOMES`, see LIT.md): the same script with `--exclude-atypical`,
-writing to `output/mlsa/<program>_excluded/`. `sanger_refalign` has hsp65 variants (72 genome amplicons;
+writing to `output/mlsa-kansasii/results/<program>_excluded/`. `sanger_refalign` has hsp65 variants (72 genome amplicons;
 IUPAC experiment, see below). All are SLURM jobs: `submit_<program>.sbatch` (repo root) calls `scripts/NN_<program>.py`.
 
 ```
@@ -64,19 +64,19 @@ GTDB genomes downloaded by immensekansasii step 1. Steps in dependency order; "N
 | 1 | inputs | `scripts/01_download_filter_gtdb.sh` | - | accession list of the 7 species (`output/immensekansasii/gtdb/gtdb232/`) |
 | 2 | inputs | `scripts/02_link_gtdb_kansasii_complex.sh` | 1, genomes | `data/gtdb_genomes/.../mlsa-kansasii/<species>/` |
 | 3 | inputs | `scripts/03_link_sanger_kansasii.sh` | link table | `data/sanger/seq_kansasii/` |
-| 4 | A | `sbatch submit_locus_discovery.sbatch` (+ `submit_locus_discovery_excluded.sbatch`) | 2 | `output/mlsa/locus_discovery*` |
-| 5 | A | `sbatch submit_genome_identity_check.sbatch` | 2 | `output/mlsa/genome_identity_check/` |
+| 4 | A | `sbatch submit_locus_discovery.sbatch` (+ `submit_locus_discovery_excluded.sbatch`) | 2 | `output/mlsa-kansasii/results/locus_discovery*` |
+| 5 | A | `sbatch submit_genome_identity_check.sbatch` | 2 | `output/mlsa-kansasii/results/genome_identity_check/` |
 | 6 | inputs | `python scripts/06_make_hsp65_references.py` | 4 | `data/gtdb_genomes/.../kansasii_complex_hsp65_amplicons/` |
-| 7 | B | `sbatch submit_sanger_mlsa.sbatch` (+ `submit_sanger_mlsa_excluded.sbatch`) | 3, 4 | `output/mlsa/sanger_mlsa*` |
-| 8 | B | `sbatch submit_sanger_refalign.sbatch`, then `submit_hsp65_amplicon_alignment.sbatch` | 3 (and 6 for the second) | `output/mlsa/sanger_refalign*` |
+| 7 | B | `sbatch submit_sanger_mlsa.sbatch` (+ `submit_sanger_mlsa_excluded.sbatch`) | 3, 4 | `output/mlsa-kansasii/results/sanger_mlsa*` |
+| 8 | B | `sbatch submit_sanger_refalign.sbatch`, then `submit_hsp65_amplicon_alignment.sbatch` | 3 (and 6 for the second) | `output/mlsa-kansasii/results/sanger_refalign*` |
 | 9 | - | immensekansasii `06_screening_map_results.py` | 7, 8 | `data/imm/screening_map_results.csv` |
-| 10 | C | `sbatch submit_sanger_vs_wgs.sbatch` | 7, 8, 9 | `output/mlsa/sanger_vs_wgs/` |
+| 10 | C | `sbatch submit_sanger_vs_wgs.sbatch` | 7, 8, 9 | `output/mlsa-kansasii/results/sanger_vs_wgs/` |
 
 `immensekansasii/scripts/run_downstream.sh` submits all of this (and the other repos' downstream
 steps) as one dependency chain.
 
 Outputs are written to the shares, not into the repo:
-`/shares/sander.imm.uzh/MM/kansasii/output/mlsa/<program>/` (tables + `figures/`).
+`/shares/sander.imm.uzh/MM/kansasii/output/mlsa-kansasii/results/<program>/` (tables + `figures/`).
 
 To download all results to a Windows machine (PowerShell):
 
@@ -110,7 +110,7 @@ Sanger reads carry IUPAC codes (Y, R, K, M, S, W, N) where the trace has mixed p
 them: `_diff` in `mlsa/refalign.py` compares only columns where read and reference both have A/C/G/T, and any
 non-ACGT reference base becomes `N`. The references (genome amplicons, locus FASTAs) are pure ACGT, so
 IUPAC-aware scoring on the read side alone has little to act on. The test therefore also built references that
-carry ambiguity: one consensus per species from `output/mlsa/locus_discovery/alignments/hsp65.aligned.fasta`
+carry ambiguity: one consensus per species from `output/mlsa-kansasii/results/locus_discovery/alignments/hsp65.aligned.fasta`
 where every column with more than one base becomes the IUPAC code of those bases.
 
 `09_sanger_refalign.py --iupac` (default off, so the default output is unchanged):
@@ -120,7 +120,7 @@ where every column with more than one base becomes the IUPAC code of those bases
 
 `scripts/07_make_iupac_hsp65_references.py MIN_MINOR OUT_DIR` builds the consensus references (MIN_MINOR 1 = every
 polymorphic site, 2 = a base needs >= 2 genomes). Job `submit_hsp65_iupac_experiment.sbatch`
-writes `output/mlsa/sanger_refalign_hsp65_iupac/`: A = baseline (the amplicon run), B = `--iupac` on the 72
+writes `output/mlsa-kansasii/results/sanger_refalign_hsp65_iupac/`: A = baseline (the amplicon run), B = `--iupac` on the 72
 amplicons, C/D = `--iupac` on the consensus (MIN_MINOR 1/2), E = old scoring on the same 7 consensus references.
 
 **Result** (127 hsp65 reads with a whole-genome species): A, B, C, D and E are identical, 110 correct, 1 wrong
@@ -261,7 +261,7 @@ hsp65+16S, both TNRs, hsp65 first, if they differ).
    were available, is in `representative_reads.tsv`.
 2. **Alignment.** The isolate reads are aligned with MAFFT together with the
    reference sequences of the 7 species from locus_discovery
-   (`output/mlsa/locus_discovery/alignments/<locus>.raw.fasta`, or extracted again
+   (`output/mlsa-kansasii/results/locus_discovery/alignments/<locus>.raw.fasta`, or extracted again
    if locus_discovery's output is missing). Distance is the uncorrected p-distance: the
    fraction of positions that differ, counting only positions where neither
    sequence has a gap.
