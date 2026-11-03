@@ -13,13 +13,13 @@ CHANGELOG entries before 2026-10-23 use those names):
 | Stage | Program (script `scripts/NN_<program>.py`, output `output/mlsa-kansasii/results/<program>/`) | Was | Question |
 |---|---|---|---|
 | **A. Reference genomes** | `locus_discovery` (04) | main1 | Which smallest locus combination fully separates the 7 species in the GTDB genomes? |
-| | `genome_identity_check` (05) | - | Are genomes with atypical marker genes really another species? All-vs-all ANI (skani), see LIT.md. |
+| | `genome_identity_check` (05) | - | Are genomes with atypical marker genes really another species? All-vs-all ANI (skani), see kansasii-docs/docs/LIT.md. |
 | **B. Sanger species ID** | `sanger_mlsa` (08) | main2 | How far do the isolates' hsp65/16S reads resolve species (distances to all reference genomes), and which extra locus (from `locus_discovery`'s candidates) would resolve the ambiguous ones? |
 | | `sanger_refalign` (09) | main3 | Species of a read (`.ab1`/FASTA) by plain alignment to one reference genome per species, no MLSA. One row per read in `reference_alignment.tsv` (no PDFs: sanger-microsynth makes and emails the per-read alignment PDF). Logic in `mlsa/refalign.py` (copied to sanger-microsynth). |
 | **C. Validation** | `sanger_vs_wgs` (10) | main4 | How often do the Sanger hsp65 calls match the whole-genome species? |
 
 Each of `locus_discovery` and `sanger_mlsa` has an `_excluded` sensitivity variant (without the 3
-atypical Korean *M. kansasii* genomes `ATYPICAL_HSP65_GENOMES`, see LIT.md): the same script with `--exclude-atypical`,
+atypical Korean *M. kansasii* genomes `ATYPICAL_HSP65_GENOMES`, see kansasii-docs/docs/LIT.md): the same script with `--exclude-atypical`,
 writing to `output/mlsa-kansasii/results/<program>_excluded/`. `sanger_refalign` has hsp65 variants (72 genome amplicons;
 IUPAC experiment, see below). All are SLURM jobs: `submit_<program>.sbatch` (repo root) calls `scripts/NN_<program>.py`.
 
@@ -97,7 +97,7 @@ whole-genome species: 110 of 111 calls correct on the 127 complex isolates with 
 
 - Plain alignment needs no locus extraction, no annotation and no tolerance estimate, works on any read,
   and takes seconds. It also never sees the 72-genome diversity, so the 3 Korean *M. kansasii* genomes
-  (LIT.md) cannot disturb it. But that is blindness, not robustness: an isolate carrying their
+  (kansasii-docs/docs/LIT.md) cannot disturb it. But that is blindness, not robustness: an isolate carrying their
   persicum-like hsp65 would be called persicum, with the representatives giving no hint of the problem.
 - sanger_mlsa (MLSA-style) measures within-species diversity from all references and so says when a call is
   not supported (`unambiguous`), but is hsp65/16S-limited and needs locus_discovery's alignments.
@@ -163,7 +163,7 @@ What drives it (all 201 `ok` reads of the Sanger set in the hsp65 amplicon run; 
   gastri) and the 2 `ambiguous` reads become `ok`; the 111 `ok` / 110 correct on the truth subset are unchanged. The
   margin grows because the nearest kansasii-like sequence was removed from the references, not because the reads are
   better supported: the F and A numbers measure different things. A *Korean-type* kansasii isolate (kansasii by ANI and
-  at every other locus, LIT.md) would still be called persicum under F, with no hint of the problem. Keeping the 3
+  at every other locus, kansasii-docs/docs/LIT.md) would still be called persicum under F, with no hint of the problem. Keeping the 3
   genomes gives the margin against the nearest real genome.
 - **No Sanger read matches these genomes.** `atypical_hsp65` is false for all reads in every run, so there is no
   Korean-like isolate in this set to test the case; "Korean" refers to the genomes, not to reads. Runs A-E (and the
@@ -233,7 +233,7 @@ Sources: [Mycobacterium gastri, type strain designations](https://lpsn.dsmz.de/s
 | locus_discovery | `combo_results.tsv`, `winning_combo/`, `figures/`, `SUMMARY.txt` | final results |
 | sanger_mlsa | `isolate_classification.tsv`, `representative_reads.tsv`, `recommended_additional_loci.tsv`, `figures/`, `SUMMARY.txt` | final results |
 | `*_excluded` variants | the same, in their own output folders | sanger_mlsa_excluded reads locus_discovery_excluded; otherwise final results |
-| genome_identity_check | `skani_ani.tsv`, `skani_long.tsv`, `species_ani_summary.tsv` | no code; the ANI numbers are cited by hand in LIT.md |
+| genome_identity_check | `skani_ani.tsv`, `skani_long.tsv`, `species_ani_summary.tsv` | no code; the ANI numbers are cited by hand in kansasii-docs/docs/LIT.md |
 
 The genome_identity_check results inform decisions about which reference
 genomes to trust or exclude. No pipeline step reads them.
@@ -304,7 +304,7 @@ Things to keep in mind when reading the table:
   judged on only a few positions.
 - Reference 16S/ITS: some GTDB assemblies contain contaminant contigs with
   their own 16S. `mlsa.loci.extract_16s` skips partial copies and keeps the
-  copy closest to the type-strain 16S (see LIT.md, "Extraction artifact").
+  copy closest to the type-strain 16S (see kansasii-docs/docs/LIT.md, "Extraction artifact").
   Partial genes are also skipped for the gene-symbol loci (rpoB, gyrA, gyrB,
   recA, secA1, tuf).
 

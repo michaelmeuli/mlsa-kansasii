@@ -26,7 +26,7 @@ Run via submit_sanger_mlsa.sbatch (requires env_mlsa active and
 the mafft Singularity container pulled). Best run after 04_locus_discovery, but falls
 back to extracting reference sequences itself if locus_discovery's output is missing.
 
---exclude-atypical: reference set without the three Korean M. kansasii genomes (ATYPICAL_HSP65_GENOMES, LIT.md);
+--exclude-atypical: reference set without the three Korean M. kansasii genomes (ATYPICAL_HSP65_GENOMES, kansasii-docs/docs/LIT.md);
 reads locus_discovery_excluded, writes output/mlsa-kansasii/results/sanger_mlsa_excluded (submit_sanger_mlsa_excluded.sbatch).
 Flags: --screening-map, --sanger-dir, --complex-genomes, --locus-discovery-dir, --out.
 """

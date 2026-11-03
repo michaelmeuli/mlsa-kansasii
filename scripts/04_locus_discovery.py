@@ -21,7 +21,7 @@ Run via submit_locus_discovery.sbatch on the cluster (requires env_mlsa
 active and the mafft/iqtree Singularity containers pulled).
 
 --exclude-atypical drops the three Korean M. kansasii genomes with a persicum-like hsp65 (ATYPICAL_HSP65_GENOMES,
-LIT.md) and writes to output/mlsa-kansasii/results/locus_discovery_excluded: a sensitivity analysis, run by
+kansasii-docs/docs/LIT.md) and writes to output/mlsa-kansasii/results/locus_discovery_excluded: a sensitivity analysis, run by
 submit_locus_discovery_excluded.sbatch. Flags: --complex-genomes DIR (default GTDB_COMPLEX_GENOMES), --out DIR.
 """
 from __future__ import annotations

@@ -4,7 +4,7 @@ reference genomes of the 7 M. kansasii complex species, i.e. the same
 genomes 04_locus_discovery / 08_sanger_mlsa use. It answers whether a genome whose marker genes
 look like another species (e.g. the persicum-like hsp65 of
 GCF_002705785.1/825.1/865.1, or the persicum-type 16S of GCF_002086895.1)
-is really a different species genome-wide. See LIT.md.
+is really a different species genome-wide. See kansasii-docs/docs/LIT.md.
 
 Outputs (in RESULTS):
 - genomes.txt: the .fna paths passed to skani.

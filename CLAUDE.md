@@ -27,7 +27,7 @@ classifies isolates. This file only lists what is easy to get wrong.
   from the isolate's `TNR` in `TNR_MLSA`.
 - **`*_excluded` variants** rerun locus_discovery/sanger_mlsa without the 3 kansasii genomes
   GCF_002705785.1, GCF_002705825.1 and GCF_002705865.1 (`ATYPICAL_HSP65_GENOMES`). They are the same
-  script with `--exclude-atypical` (`submit_*_excluded.sbatch`). LIT.md explains why those genomes are real *M. kansasii*, so
+  script with `--exclude-atypical` (`submit_*_excluded.sbatch`). kansasii-docs/docs/LIT.md explains why those genomes are real *M. kansasii*, so
   excluding them is a sensitivity check, not a correction.
 - **Order:** locus_discovery before sanger_mlsa, and `locus_discovery_excluded` before
   `sanger_mlsa_excluded`. sanger_mlsa reuses locus_discovery's reference alignments and
