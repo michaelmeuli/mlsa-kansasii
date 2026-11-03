@@ -349,7 +349,7 @@ cd genome_identity_check
 sbatch submit_genome_identity_check.sbatch
 ```
 
-`run_genome_identity_check.py` lists the same 72 GTDB r232 genomes locus_discovery
+`scripts/05_genome_identity_check.py` lists the same 72 GTDB r232 genomes locus_discovery
 uses (`mlsa.loci.discover_genomes`) and runs `skani triangle -E -s 70`
 (skani 0.3.2 from the GTDB-Tk container, `mlsa.align.run_skani_triangle`).
 It writes to `output/mlsa-kansasii/results/genome_identity_check/`:
