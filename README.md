@@ -93,7 +93,7 @@ differences fewer than the closest other species), `ambiguous`, `divergent` (&lt
 locus, or bad read). By default the 7 representatives; for hsp65 reads use `--ref-dir` with the 72 per-genome
 hsp65 amplicons (`scripts/06_make_hsp65_references.py`, job `submit_hsp65_amplicon_alignment.sbatch`), which also flags
 reads matching the atypical-hsp65 kansasii genomes (`atypical_hsp65` column). sanger_vs_wgs benchmarks this against
-whole-genome species: 82 of 83 calls correct on 92 isolates (the miss is a mixed culture). Compared with locus_discovery/sanger_mlsa:
+whole-genome species: 110 of 111 calls correct on the 127 complex isolates with a Sanger hsp65 read (the miss is a mixed culture, Mkan329-035). Compared with locus_discovery/sanger_mlsa:
 
 - Plain alignment needs no locus extraction, no annotation and no tolerance estimate, works on any read,
   and takes seconds. It also never sees the 72-genome diversity, so the 3 Korean *M. kansasii* genomes
