@@ -4,8 +4,8 @@ See README.md for the question, layout, setup, run order and how sanger_mlsa
 classifies isolates. This file only lists what is easy to get wrong.
 
 - **Outputs are on the shares, not in the repo:**
-  `/shares/sander.imm.uzh/MM/kansasii/output/mlsa-kansasii/results/<program>/`. A repo-local
-  `results/` folder is obsolete. Don't read from it or write to it.
+  `/shares/sander.imm.uzh/MM/kansasii/output/mlsa-kansasii/results/<program>/`. Never read from or write to a repo-local
+  `results/` folder.
 - **Environment:** the system `python3` has no pandas or Biopython. Use
   `conda activate env_mlsa`. Real runs go through the `submit_*.sbatch` SLURM
   jobs (`module load apptainer`, mafft/iqtree via Singularity). Don't run the
@@ -20,8 +20,7 @@ classifies isolates. This file only lists what is easy to get wrong.
   after the source data changes. The isolate list is
   `data/imm/screening_map_link.csv`.
 - **Isolates are keyed by `PROBENNUMMER`.** Reads under all TNR columns
-  (`TNR_COLUMNS` of `kansasii_paths`) are pooled per isolate. Output tables with a
-  lowercase `tnr` column come from older code and are out of date. sanger_mlsa's
+  (`TNR_COLUMNS` of `kansasii_paths`) are pooled per isolate. sanger_mlsa's
   uppercase `TNR` column is only the TNR of the read that was picked.
   `screening_map_results.csv` (immensekansasii) flags reads whose TNR differs
   from the isolate's `TNR` in `TNR_MLSA`.
@@ -36,8 +35,7 @@ classifies isolates. This file only lists what is easy to get wrong.
   (`SPECIES`, `SPECIES_COLORS`). Reuse them; don't redefine them.
 - **immensekansasii pipeline runs** go in their own subdirectory of
   `/shares/sander.imm.uzh/MM/kansasii/runs/<run_name>/`, never in `output/`. The Nextflow `work/`
-  directory is large and temporary; only the end results are copied to
-  `/shares/sander.imm.uzh/MM/kansasii/output/<run_name>/` (see README.md).
+  directory is large and temporary (see `kansasii-docs/docs/WORKFLOW.md`, section 2).
 - **`mlsa/refalign.py`** (sanger_refalign) is the source of the vendored copies in hsp65-refalign, gyrA-refalign and
-  sanger-microsynth (`refalign.py`, `sanger_io.py`); these have drifted (IUPAC mode only here, PDF code only here and in
+  sanger-microsynth (`refalign.py`, `sanger_io.py`); the copies differ (IUPAC mode only here, PDF code only here and in
   sanger-microsynth). See `kansasii-docs/docs/VENDORED.md`.

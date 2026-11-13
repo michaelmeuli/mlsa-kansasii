@@ -7,16 +7,15 @@ the lab's existing hsp65 + 16S Sanger data already get?
 
 ## Layout
 
-Programs are grouped in three stages (formerly `main1` to `main4`; old logs, emails and
-CHANGELOG entries before 2026-10-23 use those names):
+Programs are grouped in three stages:
 
-| Stage | Program (script `scripts/NN_<program>.py`, output `output/mlsa-kansasii/results/<program>/`) | Was | Question |
-|---|---|---|---|
-| **A. Reference genomes** | `locus_discovery` (04) | main1 | Which smallest locus combination fully separates the 7 species in the GTDB genomes? |
-| | `genome_identity_check` (05) | - | Are genomes with atypical marker genes really another species? All-vs-all ANI (skani), see kansasii-docs/docs/LIT.md. |
-| **B. Sanger species ID** | `sanger_mlsa` (08) | main2 | How far do the isolates' hsp65/16S reads resolve species (distances to all reference genomes), and which extra locus (from `locus_discovery`'s candidates) would resolve the ambiguous ones? |
-| | `sanger_refalign` (09) | main3 | Species of a read (`.ab1`/FASTA) by plain alignment to one reference genome per species, no MLSA. One row per read in `reference_alignment.tsv` (no PDFs: sanger-microsynth makes and emails the per-read alignment PDF). Logic in `mlsa/refalign.py` (copied to sanger-microsynth). |
-| **C. Validation** | `sanger_vs_wgs` (10) | main4 | How often do the Sanger hsp65 calls match the whole-genome species? |
+| Stage | Program (script `scripts/NN_<program>.py`, output `output/mlsa-kansasii/results/<program>/`) | Question |
+|---|---|---|
+| **A. Reference genomes** | `locus_discovery` (04) | Which smallest locus combination fully separates the 7 species in the GTDB genomes? |
+| | `genome_identity_check` (05) | Are genomes with atypical marker genes really another species? All-vs-all ANI (skani), see kansasii-docs/docs/LIT.md. |
+| **B. Sanger species ID** | `sanger_mlsa` (08) | How far do the isolates' hsp65/16S reads resolve species (distances to all reference genomes), and which extra locus (from `locus_discovery`'s candidates) would resolve the ambiguous ones? |
+| | `sanger_refalign` (09) | Species of a read (`.ab1`/FASTA) by plain alignment to one reference genome per species, no MLSA. One row per read in `reference_alignment.tsv` (no PDFs: sanger-microsynth makes and emails the per-read alignment PDF). Logic in `mlsa/refalign.py` (copied to sanger-microsynth). |
+| **C. Validation** | `sanger_vs_wgs` (10) | How often do the Sanger hsp65 calls match the whole-genome species? |
 
 Each of `locus_discovery` and `sanger_mlsa` has an `_excluded` sensitivity variant (without the 3
 atypical Korean *M. kansasii* genomes `ATYPICAL_HSP65_GENOMES`, see kansasii-docs/docs/LIT.md): the same script with `--exclude-atypical`,
@@ -121,7 +120,7 @@ where every column with more than one base becomes the IUPAC code of those bases
 `scripts/07_make_iupac_hsp65_references.py MIN_MINOR OUT_DIR` builds the consensus references (MIN_MINOR 1 = every
 polymorphic site, 2 = a base needs >= 2 genomes). Job `submit_hsp65_iupac_experiment.sbatch`
 writes `output/mlsa-kansasii/results/sanger_refalign_hsp65_iupac/`: A = baseline (the amplicon run), B = `--iupac` on the 72
-amplicons, C/D = `--iupac` on the consensus (MIN_MINOR 1/2), E = old scoring on the same 7 consensus references.
+amplicons, C/D = `--iupac` on the consensus (MIN_MINOR 1/2), E = default scoring on the same 7 consensus references.
 
 **Result** (127 hsp65 reads with a whole-genome species): A, B, C, D and E are identical, 110 correct, 1 wrong
 (the mixed culture), 16 without a call (15 divergent, 1 no hit), and no call flips. The no-calls are 77-85 % identity
@@ -129,9 +128,8 @@ reads (Rothia contaminant, failed traces), not ambiguity-code problems. The marg
 for 101 of the 201 `ok` reads of the hsp65 amplicon run (see below), but no call. 16S and sanger_mlsa's distances were not tested.
 The consensus has 11 ambiguous sites for kansasii (mostly from the 3 atypical-hsp65 genomes) and at most 3 for the others.
 
-Independent of `--iupac`, `_COMP` (used to put a reverse-strand hit back in the read's orientation) now has the full
-IUPAC complement; before, it only knew N, so R, Y, K, M, S and W were not complemented. Same fix in
-sanger-microsynth `sanger_ms/refalign.py`; the `--iupac` code exists only in mlsa-kansasii. Known remaining
+Independent of `--iupac`, `_COMP` (used to put a reverse-strand hit back in the read's orientation) has the full
+IUPAC complement (also in the vendored copies of `refalign.py`); the `--iupac` code exists only in mlsa-kansasii. Known
 inconsistency: `p_distance_matrix` in `mlsa/align.py` (sanger_mlsa) counts IUPAC letters as mismatches, whereas
 `pairwise_p_distance` skips them.
 
@@ -163,13 +161,13 @@ What drives it (all 201 `ok` reads of the Sanger set in the hsp65 amplicon run; 
   gastri) and the 2 `ambiguous` reads become `ok`; the 111 `ok` / 110 correct on the truth subset are unchanged. The
   margin grows because the nearest kansasii-like sequence was removed from the references, not because the reads are
   better supported: the F and A numbers measure different things. A *Korean-type* kansasii isolate (kansasii by ANI and
-  at every other locus, kansasii-docs/docs/LIT.md) would still be called persicum under F, with no hint of the problem. Keeping the 3
+  at every other locus, kansasii-docs/docs/LIT.md) would be called persicum under F as well, with no hint of the problem. Keeping the 3
   genomes gives the margin against the nearest real genome.
 - **No Sanger read matches these genomes.** `atypical_hsp65` is false for all reads in every run, so there is no
   Korean-like isolate in this set to test the case; "Korean" refers to the genomes, not to reads. Runs A-E (and the
   published amplicon run) include the 3 genomes; only F leaves them out.
 - **IUPAC consensus (C/D) changes margins only by averaging genomes:** kansasii +0.6 (7.4 -> 8.0), pseudokansasii -0.6,
-  attenuatum -2, innocens -3, persicum 0 (still 2.85, because the consensus kansasii codes the Korean alleles at 11
+  attenuatum -2, innocens -3, persicum 0 (2.85 as before, because the consensus kansasii codes the Korean alleles at 11
   sites and persicum reads match them). That follows from 7 consensus references vs 72 genomes. It also hides which
   genome is closest, and the atypical flag cannot be raised from a species consensus.
 
@@ -308,30 +306,14 @@ Things to keep in mind when reading the table:
   Partial genes are also skipped for the gene-symbol loci (rpoB, gyrA, gyrB,
   recA, secA1, tuf).
 
-The TNR isolates will also be Illumina-sequenced and speciated with the
-`kansasii` branch of
-[immensekansasii](https://gitlab.uzh.ch/appliedmicrobiologyresearch/immense.git)
-(`../immensekansasii`); this repo answers the same species-complex question
-computationally ahead of that NGS data being available.
+The isolates are also Illumina-sequenced and speciated with the
+`kansasii` branch of immensekansasii (`../immensekansasii`); `sanger_vs_wgs`
+compares the Sanger calls of this repo with those genome species.
 
 ## Pipeline runs (immensekansasii)
 
-Start every run of the immensekansasii (IMMense) pipeline in its own
-subdirectory of `/shares/sander.imm.uzh/MM/kansasii/runs/`, not in `output/`.
-Nextflow writes its `work/` directory into the directory the run is started
-from. `work/` is large and only temporary, so it must not end up in
-`output/`, which gets downloaded to local `kansasii_C`. Once a run has
-finished and been checked, copy its end results to
-`/shares/sander.imm.uzh/MM/kansasii/output/<run_name>/` and delete `work/`.
-
-```bash
-mkdir -p /shares/sander.imm.uzh/MM/kansasii/runs/<run_name>
-cd /shares/sander.imm.uzh/MM/kansasii/runs/<run_name>
-bash /shares/sander.imm.uzh/MM/kansasii/repos/immensekansasii/run_IMMENSE.sh -j <job_name> -t <input_type> -r <run_name> -i <input_dir>
-
-# after the run: collect results (without work/) in output/
-rsync -a --exclude work --exclude .nextflow /shares/sander.imm.uzh/MM/kansasii/runs/<run_name>/ /shares/sander.imm.uzh/MM/kansasii/output/<run_name>/
-```
+Pipeline runs are started in their own subdirectory of `/shares/sander.imm.uzh/MM/kansasii/runs/`, never in `output/`
+(Nextflow writes its large `work/` directory where the run is started). Commands: `kansasii-docs/docs/WORKFLOW.md`, section 2.
 
 ## Windows checkout
 
