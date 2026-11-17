@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Iterable, Iterator
 from Bio import SeqIO
 from Bio.Seq import Seq
 
-from .kansasii_paths import GTDB_COMPLEX_GENOMES
+from .kansasii_paths import ATCC12478_ACCESSION, GTDB_COMPLEX_GENOMES
 from .protocols import get_hsp65_primers
 
 if TYPE_CHECKING:
@@ -121,7 +121,7 @@ def extract_gene_by_symbol(genome: GenomeRecord, gene_symbols: list[str]) -> str
 
 # Type-strain genome whose 16S serves as the reference for picking the right
 # 16S copy in the other genomes (see _select_16s).
-TYPE_STRAIN = ("kansasii", "GCF_000157895.3")
+TYPE_STRAIN = ("kansasii", ATCC12478_ACCESSION)
 _KMER = 8
 # Minimum fraction of a candidate 16S's 8-mers that must also occur in the
 # type-strain 16S. Complex members share >99% 16S identity (well above 0.9
